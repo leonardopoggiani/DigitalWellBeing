@@ -36,13 +36,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void sensorSetup(){
         sm = (SensorManager)getSystemService(SENSOR_SERVICE);
         s1 = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        List<Sensor> sensor = sm.getSensorList(Sensor.TYPE_ALL);
+        s2 = sm.getDefaultSensor(25);
 
-        for(Sensor sens : sensor) {
-            System.out.println("sensor: " + sens.getName());
-        }
-        
-        if(s1 == null) {
+        if(s1 == null || s2 == null) {
             Log.d(TAG, "Sensor(s) unavailable");
             finish();
         }
@@ -87,6 +83,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } else {
                 already_recognized = 0;
             }
+        } else {
+            Log.i(TAG, "Sensor:" + event.sensor.getType());
         }
     }
 
