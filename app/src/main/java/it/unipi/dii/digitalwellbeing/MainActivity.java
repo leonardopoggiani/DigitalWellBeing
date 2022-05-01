@@ -124,28 +124,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             if( (ay > -11.0 && ay < -8.0)  && (ax < 5.0 && ax > -1.0) && (az < 4.0 && az > -0.5) ){
                 Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-
-                try {
-                    StringBuilder sb = new StringBuilder();
-
-                    sb.append(id_trouser_pocket_downwards);
-                    sb.append(',');
-                    sb.append(ax);
-                    sb.append(',');
-                    sb.append(ay);
-                    sb.append(',');
-                    sb.append(az);
-                    sb.append('\n');
-
-                    id_trouser_pocket_downwards++;
-                    writerTrouserPocketDownwards.append(sb.toString());
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    //FileWriter creation could be failed so the rate must be reset on low frequency rate
-                    Log.d(TAG,"Some writer is failed");
-                    sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-                }
+                appendToCSV(id_trouser_pocket_downwards, ax, ay, az, writerTrouserPocketDownwards, "POCKET_DOWNWARDS");
 
                 if(already_recognized == 0) {
                     already_recognized = 1;
@@ -153,28 +132,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             } else if( (ay > 9.0 && ay < 10.5) && (ax < 3.0 && ax > 0.0) && (az < 1.0 && az > -2.0 ) ){
                 Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-
-                try {
-                    StringBuilder sb = new StringBuilder();
-
-                    sb.append(id_trouser_pocket_upwards);
-                    sb.append(',');
-                    sb.append(ax);
-                    sb.append(',');
-                    sb.append(ay);
-                    sb.append(',');
-                    sb.append(az);
-                    sb.append('\n');
-
-                    id_trouser_pocket_upwards++;
-                    writerTrouserPocketUpwards.append(sb.toString());
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    //FileWriter creation could be failed so the rate must be reset on low frequency rate
-                    Log.d(TAG,"Some writer is failed");
-                    sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-                }
+                appendToCSV(id_trouser_pocket_upwards, ax, ay, az, writerTrouserPocketUpwards, "POCKET_UPWARDS");
 
                 if(already_recognized == 0) {
                     already_recognized = 1;
@@ -182,88 +140,94 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             } else if ( (ay > 3.0 && ay < 10.0) && (ax < 2.0 && ax > -1.0) && (az < 10.0 && az > 2.0 ) ){
                 Log.i(TAG, " Handheld ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-
-                try {
-                    StringBuilder sb = new StringBuilder();
-
-                    sb.append(id_handheld);
-                    sb.append(',');
-                    sb.append(ax);
-                    sb.append(',');
-                    sb.append(ay);
-                    sb.append(',');
-                    sb.append(az);
-                    sb.append('\n');
-
-                    id_handheld++;
-                    writerHandheld.append(sb.toString());
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    //FileWriter creation could be failed so the rate must be reset on low frequency rate
-                    Log.d(TAG,"Some writer is failed");
-                    sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-                }
+                appendToCSV(id_handheld, ax, ay, az, writerHandheld, "HANDHELD");
 
             } else if ( (ay > -1.0 && ay < 1.0) && (ax < 1.0 && ax > -1.0) && (az < 11.0 && az > 9.0 ) ){
                 Log.i(TAG, " On the table ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-
-                try {
-                    StringBuilder sb = new StringBuilder();
-
-                    sb.append(id_table);
-                    sb.append(',');
-                    sb.append(ax);
-                    sb.append(',');
-                    sb.append(ay);
-                    sb.append(',');
-                    sb.append(az);
-                    sb.append('\n');
-
-                    id_table++;
-                    writerTable.append(sb.toString());
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    //FileWriter creation could be failed so the rate must be reset on low frequency rate
-                    Log.d(TAG,"Some writer is failed");
-                    sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-                }
+                appendToCSV(id_table, ax, ay, az, writerTable, "TABLE");
 
             } else {
-                try {
-                    StringBuilder sb = new StringBuilder();
+                    appendToCSV(id_other, ax, ay, az, writerOther, "OTHER");
 
-                    sb.append(id_other);
-                    sb.append(',');
-                    sb.append(ax);
-                    sb.append(',');
-                    sb.append(ay);
-                    sb.append(',');
-                    sb.append(az);
-                    sb.append('\n');
-
-                    id_other++;
-                    writerOther.append(sb.toString());
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    //FileWriter creation could be failed so the rate must be reset on low frequency rate
-                    Log.d(TAG,"Some writer is failed");
-                    sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-                }
-
-                Log.i(TAG, " Not in trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                already_recognized = 0;
+                    Log.i(TAG, " Not in trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
+                    already_recognized = 0;
             }
         }
     }
 
-    //Check if accelerometer axis data are in the range of values related to a possible hands washing action
-    public boolean isInRange(SensorEvent event) {
-        if((event.values[0] >= Configuration.X_LOWER_BOUND && event.values[0] <= Configuration.X_UPPER_BOUND) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND && event.values[1] <= Configuration.Y_UPPER_BOUND) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND && event.values[2] <= Configuration.Z_UPPER_BOUND)) {
+    private void appendToCSV(int id, double x, double y, double z, FileWriter writer, String tag) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(id);
+        sb.append(',');
+        sb.append(x);
+        sb.append(',');
+        sb.append(y);
+        sb.append(',');
+        sb.append(z);
+        sb.append('\n');
+
+        switch (tag) {
+            case "TABLE":
+                id_table++;
+                break;
+            case "POCKET_DOWNWARDS":
+                id_trouser_pocket_downwards++;
+                break;
+            case "POCKET_UPWARDS":
+                id_trouser_pocket_upwards++;
+                break;
+            case "HANDHELD":
+                id_handheld++;
+                break;
+            case "OTHER":
+                id_other++;
+                break;
+            default:
+                break;
+        }
+
+        try {
+            writer.append(sb.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean checkRangeUpwardsPocket(SensorEvent event) {
+        if((event.values[0] >= Configuration.X_LOWER_BOUND_UPWARDS && event.values[0] <= Configuration.X_UPPER_BOUND_UPWARDS) &&
+                (event.values[1] >= Configuration.Y_LOWER_BOUND_UPWARDS && event.values[1] <= Configuration.Y_UPPER_BOUND_UPWARDS) &&
+                (event.values[2] >= Configuration.Z_LOWER_BOUND_UPWARDS && event.values[2] <= Configuration.Z_UPPER_BOUND_UPWARDS)) {
+            Log.d(TAG, "ACC_X: "+event.values[0]+", ACC_Y: "+event.values[1]+", ACC_Z: "+event.values[2]+", TIMESTAMP: "+event.timestamp);
+            return true;
+        }
+        else  return false;
+    }
+
+    public boolean checkRangeDownwardsPocket(SensorEvent event) {
+        if((event.values[0] >= Configuration.X_LOWER_BOUND_DOWNWARDS && event.values[0] <= Configuration.X_UPPER_BOUND_DOWNWARDS) &&
+                (event.values[1] >= Configuration.Y_LOWER_BOUND_DOWNWARDS && event.values[1] <= Configuration.Y_UPPER_BOUND_DOWNWARDS) &&
+                (event.values[2] >= Configuration.Z_LOWER_BOUND_DOWNWARDS && event.values[2] <= Configuration.Z_UPPER_BOUND_DOWNWARDS)) {
+            Log.d(TAG, "ACC_X: "+event.values[0]+", ACC_Y: "+event.values[1]+", ACC_Z: "+event.values[2]+", TIMESTAMP: "+event.timestamp);
+            return true;
+        }
+        else  return false;
+    }
+
+    public boolean checkRangeHandheld(SensorEvent event) {
+        if((event.values[0] >= Configuration.X_LOWER_BOUND_HANDHELD && event.values[0] <= Configuration.X_UPPER_BOUND_HANDHELD) &&
+                (event.values[1] >= Configuration.Y_LOWER_BOUND_HANDHELD && event.values[1] <= Configuration.Y_UPPER_BOUND_HANDHELD) &&
+                (event.values[2] >= Configuration.Z_LOWER_BOUND_HANDHELD && event.values[2] <= Configuration.Z_UPPER_BOUND_HANDHELD)) {
+            Log.d(TAG, "ACC_X: "+event.values[0]+", ACC_Y: "+event.values[1]+", ACC_Z: "+event.values[2]+", TIMESTAMP: "+event.timestamp);
+            return true;
+        }
+        else  return false;
+    }
+
+    public boolean checkRangeTable(SensorEvent event) {
+        if((event.values[0] >= Configuration.X_LOWER_BOUND_TABLE && event.values[0] <= Configuration.X_UPPER_BOUND_TABLE) &&
+                (event.values[1] >= Configuration.Y_LOWER_BOUND_TABLE && event.values[1] <= Configuration.Y_UPPER_BOUND_TABLE) &&
+                (event.values[2] >= Configuration.Z_LOWER_BOUND_TABLE && event.values[2] <= Configuration.Z_UPPER_BOUND_TABLE)) {
             Log.d(TAG, "ACC_X: "+event.values[0]+", ACC_Y: "+event.values[1]+", ACC_Z: "+event.values[2]+", TIMESTAMP: "+event.timestamp);
             return true;
         }
