@@ -2,6 +2,7 @@ package it.unipi.dii.digitalwellbeing;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.hardware.Sensor;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
@@ -80,8 +82,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
@@ -90,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sm.unregisterListener(this);
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -98,8 +101,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 ax = event.values[0];
                 ay = event.values[1];
                 az = event.values[2];
+                TextView tv = (TextView) findViewById(R.id.provaID);
+                tv.setText(MessageFormat.format("ax: {0}, ay: {1}, az: {2}\n", ax, ay, az));
 
                 if ( checkRangeDownwardsPocket(event) && in_pocket ) {
+                    TextView tvLabel = (TextView) findViewById(R.id.Label);
+                    tvLabel.setText("Downwards Trouser pocket");
                     Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
                     appendToCSV(id_trouser_pocket_downwards, ax, ay, az, writerTrouserPocketDownwards, "POCKET_DOWNWARDS");
 
@@ -108,6 +115,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         Log.i(TAG, "Trouser pocket \n");
                     }
                 } else if ( checkRangeUpwardsPocket(event) && in_pocket) {
+                    TextView tvLabel = (TextView) findViewById(R.id.Label);
+                    tvLabel.setText("Upwards Trouser pocket");
                     Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
                     appendToCSV(id_trouser_pocket_upwards, ax, ay, az, writerTrouserPocketUpwards, "POCKET_UPWARDS");
 
@@ -116,16 +125,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         Log.i(TAG, "Trouser pocket \n");
                     }
                 } else if ( checkRangeHandheld(event) && !in_pocket) {
+                    TextView tvLabel = (TextView) findViewById(R.id.Label);
+                    tvLabel.setText("Handheld");
                     Log.i(TAG, " Handheld ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
                     appendToCSV(id_handheld, ax, ay, az, writerHandheld, "HANDHELD");
 
                 } else if ( checkRangeTable(event) && !in_pocket) {
+                    TextView tvLabel = (TextView) findViewById(R.id.Label);
+                    tvLabel.setText("Table");
                     Log.i(TAG, " On the table ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
                     appendToCSV(id_table, ax, ay, az, writerTable, "TABLE");
 
                 } else {
+                    TextView tvLabel = (TextView) findViewById(R.id.Label);
+                    tvLabel.setText("Other");
                     appendToCSV(id_other, ax, ay, az, writerOther, "OTHER");
-
                     Log.i(TAG, " Not in trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
                     already_recognized = 0;
                 }
