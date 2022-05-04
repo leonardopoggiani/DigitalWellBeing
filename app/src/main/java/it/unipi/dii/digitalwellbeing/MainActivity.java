@@ -13,14 +13,22 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
+
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
@@ -28,6 +36,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sm;
     private Sensor accelerometer;
     private Sensor proximity;
+
+    private Context ctx;
 
     private static String TAG = "DigitalWellBeing";
 
@@ -62,6 +72,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Log.d(TAG, "Sensor(s) unavailable");
             finish();
         }
+
+        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
@@ -91,35 +104,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 if ( checkRangeDownwardsPocket(event) && in_pocket ) {
                     TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Downwards Trouser pocket");
                     Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET_DOWNWARDS");
+                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET");
 
-                    if (already_recognized == 0) {
-                        already_recognized = 1;
-                        Log.i(TAG, "Trouser pocket \n");
-                    }
                 } else if ( checkRangeUpwardsPocket(event) && in_pocket) {
                     TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Upwards Trouser pocket");
                     Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET_UPWARDS");
+                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET");
 
-                    if (already_recognized == 0) {
-                        already_recognized = 1;
-                        Log.i(TAG, "Trouser pocket \n");
-                    }
                 } else if ( checkRangeHandheld(event) && !in_pocket) {
                     TextView tvLabel = (TextView) findViewById(R.id.Label);
                     tvLabel.setText("Handheld");
                     Log.i(TAG, " Handheld ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "HANDHELD");
+                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "OTHER");
 
                 } else if ( checkRangeTable(event) && !in_pocket) {
                     TextView tvLabel = (TextView) findViewById(R.id.Label);
                     tvLabel.setText("Table");
                     Log.i(TAG, " On the table ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "TABLE");
+                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "OTHER");
 
                 } else {
                     appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "OTHER");
@@ -127,7 +130,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     TextView tvLabel = (TextView) findViewById(R.id.Label);
                     tvLabel.setText("Other");
                     Log.i(TAG, " Not in trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    already_recognized = 0;
                 }
             } else if(event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
                 in_pocket = event.values[0] == 0;
@@ -184,11 +186,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 (event.values[2] >= Configuration.Z_LOWER_BOUND_TABLE && event.values[2] <= Configuration.Z_UPPER_BOUND_TABLE);
     }
 
-     public void startMonitoring(View view) {
+     public void startMonitoring(View view) throws CsvValidationException, IOException {
+
 
         if(!monitoring) {
-            dataset = new File(storagePath, "dataset.csv");
-
+            dataset = new File(storagePath, "dataset_accelerometer_unlabeled.csv");
+            
             try {
                 writerDataset = new FileWriter(dataset);
 
@@ -202,8 +205,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sb.append("az");
                 sb.append(',');
                 sb.append("timestamp");
-                sb.append(',');
-                sb.append("tag");
                 sb.append('\n');
 
                 writerDataset.append(sb);
@@ -217,28 +218,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             monitoring = true;
 
         } else {
+
             stopListener();
             Button stop_button = (Button)findViewById(R.id.start);
             stop_button.setText("START");
 
-            FeatureExtraction fe = new FeatureExtraction(this);
+            //FeatureExtraction fe = new FeatureExtraction(this);
+            //fe.extractFeatures();
             RandomForestClassifier rfc = new RandomForestClassifier(this);
-            fe.calculateFeatures();
-            double activity = rfc.classify();
-            //The classifier can return 0.0 for "Others" activity, 1.0 for "Washing_Hands"
-            // activity or -1.0 in case of errors.
-            if (activity == 1.0) {
-                Log.d(TAG, "WASHING_HANDS");
-                //if (serviceCallbacks != null) {
-                //    serviceCallbacks.setBackground("GREEN");
-                //}
-            } else if (activity == 0.0) {
-                Log.d(TAG, "OTHERS");
-                //if (serviceCallbacks != null) {
-                //    serviceCallbacks.setBackground("RED");
-                //}
-            }
-        }
+            double result = rfc.classify();
+
+            Log.d("RESULT", "Result:  " + result);
+            TextView result_label = (TextView) findViewById(R.id.result);
+            result_label.setText(String.valueOf(result));
+
+
+         }
 
     }
 

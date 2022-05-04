@@ -5,7 +5,6 @@ import android.content.Context;
 import android.util.Log;
 
 import com.opencsv.CSVReader;
-import com.opencsv.exceptions.CsvException;
 import com.opencsv.exceptions.CsvValidationException;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
@@ -15,13 +14,10 @@ import org.apache.commons.math3.stat.descriptive.moment.Skewness;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Objects;
 
 public class FeatureExtraction {
@@ -29,23 +25,17 @@ public class FeatureExtraction {
     private static final String TAG = "FeatureExtraction";
     private Context ctx;
 
-    private File featureFile;
-
-    private FileWriter featureFileWriter;
-
     private Mean mn;
     private Variance var;
     private StandardDeviation stDv;
     private Kurtosis kurtosis;
     private Skewness skewness;
 
-    private HashMap<Integer, CSVReader> csvMap = new HashMap<Integer, CSVReader>();
-    private HashMap<Integer, String[]> rowMap = new HashMap<Integer, String[]>();
-    private HashMap<Integer, Double> timeLastMap = new HashMap<Integer, Double>();
+    private File featureFile;
+    private FileWriter featureFileWriter;
 
-    private boolean status;
-
-    String tag = "FeatureExtractionService";
+    HashMap<Integer, String[]> rowMap = new HashMap<Integer, String[]>();
+    HashMap<Integer, Double> timeLastMap = new HashMap<Integer, Double>();
 
     public FeatureExtraction(Context ctx) {
         this.ctx = ctx;
@@ -55,13 +45,11 @@ public class FeatureExtraction {
         kurtosis = new Kurtosis();
         skewness = new Skewness();
 
-        status = true;
-
         featureFile = new File(ctx.getExternalFilesDir(null), "unlabeledData.arff");
         try {
             // The file doesn't exists -> The header of the arff file has to be created
             featureFileWriter = new FileWriter(featureFile);
-            headerBuild(featureFileWriter, Configuration.WINDOW_SIZE);
+            headerBuild(featureFileWriter);
         }catch(IOException e) {
             e.printStackTrace();
             try {
@@ -69,250 +57,84 @@ public class FeatureExtraction {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            status = false;
         }
+
     }
 
     //Create the header of the ARFF file used from weka module with all the attributes extracted
-    private void headerBuild(FileWriter file, int windowsSize) throws IOException{
+    private void headerBuild(FileWriter file) throws IOException{
         file.write("@RELATION trainingSet \n \n");
 
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/ Configuration.WINDOW_SIZE; i++) {
             file.append("@ATTRIBUTE AccX_win" + i + "_mean REAL\n@ATTRIBUTE AccX_win" + i + "_stDv REAL\n@ATTRIBUTE AccX_win" + i + "_kurtosis REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE AccY_win" + i + "_mean REAL\n@ATTRIBUTE AccY_win" + i + "_stDv REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
+            file.append("@ATTRIBUTE AccX_win" + i + "_skewness REAL\n");
+        }
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/ Configuration.WINDOW_SIZE; i++) {
+            file.append("@ATTRIBUTE AccY_win" + i + "_mean REAL\n@ATTRIBUTE AccY_win" + i + "_stDv REAL\n@ATTRIBUTE AccY_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE AccY_win" + i + "_skewness REAL\n");
+        }
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/ Configuration.WINDOW_SIZE; i++){
             file.append("@ATTRIBUTE AccZ_win" + i + "_mean REAL\n@ATTRIBUTE AccZ_win" + i + "_stDv REAL\n@ATTRIBUTE AccZ_win" + i + "_kurtosis REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE AccZ_win" + i + "_skewness REAL\n");
+            file.append("@ATTRIBUTE AccZ_win" + i + "_skewness REAL\n");
         }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
-            file.append("@ATTRIBUTE GyrX_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE GyrX_win" + i + "_kurtosis REAL\n");
-        }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE GyrY_win" + i + "_mean REAL\n@ATTRIBUTE GyrY_win" + i + "_stDv REAL\n@ATTRIBUTE GyrY_win" + i + "_skewness REAL\n");
-
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
-            file.append("@ATTRIBUTE GyrZ_win" + i + "_mean REAL\n@ATTRIBUTE GyrZ_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE GyrZ_win" + i + "_kurtosis REAL\n");
-            file.append("@ATTRIBUTE GyrZ_win" + i + "_skewness REAL\n");
-        }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE LinAccX_win" + i + "_mean REAL\n@ATTRIBUTE LinAccX_win" + i + "_stDv REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
-            if(i == 1)
-                file.append("@ATTRIBUTE LinAccY_win" + i + "_mean REAL\n");
-            file.append("@ATTRIBUTE LinAccY_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE LinAccY_win" + i + "_kurtosis REAL\n");
-        }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
-            file.append("@ATTRIBUTE LinAccZ_win" + i + "_mean REAL\n@ATTRIBUTE LinAccZ_win" + i + "_stDv REAL\n");
-            if(i == 2)
-                file.append("@ATTRIBUTE LinAccZ_win" + i + "_skewness REAL\n");
-        }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
-            file.append("@ATTRIBUTE GravX_win" + i + "_mean REAL\n@ATTRIBUTE GravX_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE GravX_win" + i + "_kurtosis REAL\n");
-        }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE GravY_win" + i + "_mean REAL\n@ATTRIBUTE GravY_win" + i + "_stDv REAL\n@ATTRIBUTE GravY_win" + i + "_skewness REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE GravZ_win" + i + "_mean REAL\n@ATTRIBUTE GravZ_win" + i + "_stDv REAL\n@ATTRIBUTE GravZ_win" + i + "_skewness REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE RotPitch_win" + i + "_mean REAL\n@ATTRIBUTE RotPitch_win" + i + "_stDv REAL\n@ATTRIBUTE RotPitch_win" + i + "_skewness REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
-            file.append("@ATTRIBUTE RotRoll_win" + i + "_mean REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE RotRoll_win" + i + "_skewness REAL\n");
-            if(i == 2)
-                file.append("@ATTRIBUTE RotRoll_win" + i + "_stDv REAL\n@ATTRIBUTE RotRoll_win" + i + "_kurtosis REAL\n");
-        }
-
         file.append("@ATTRIBUTE class {Others, Pickup}\n" + "\n" + "@DATA\n");
         file.flush();
     }
 
-    public Boolean calculateFeatures() {
-        Log.i(TAG, "calculateFeatures called");
-        if(!status) // an error occurs in the constructor so this method can't be executed
-            return false;
+    public void extractFeatures() throws CsvValidationException, IOException {
+        CSVReader reader = new CSVReader(new FileReader(new File(ctx.getExternalFilesDir(null), "dataset_accelerometer.csv")));
+        String[] lineInArray;
+        int biggestID = 0;
+        while ((lineInArray = reader.readNext()) != null) {
+            if (lineInArray[0].compareTo("id") != 0) {
+                rowMap.put(Integer.parseInt(lineInArray[0]), lineInArray);
+                biggestID = Integer.parseInt(lineInArray[0]);
+            }
+        }
 
-        File dataset = new File(ctx.getExternalFilesDir(null), "dataset.csv");
+        timeLastMap.put(0, Double.parseDouble(Objects.requireNonNull(rowMap.get(biggestID))[4]) / 1000000000);
 
-        boolean result = true;
-        try {
-            CSVReader reader = new CSVReader(new FileReader(new File(ctx.getExternalFilesDir(null), "dataset.csv")));
-            String[] lineInArray;
-            int biggestID = 0;
-            while ((lineInArray = reader.readNext()) != null) {
-                if(lineInArray[0].compareTo("id") != 0) {
-                    rowMap.put(Integer.parseInt(lineInArray[0]),lineInArray);
-                    biggestID = Integer.parseInt(lineInArray[0]);
-                }
+        for (int i = 0; i < Configuration.SIGNAL_LENGTH / Configuration.FRAGMENT_LENGTH; i++) {
+
+            double[] x_axis = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
+            double[] y_axis = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
+            double[] z_axis = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
+
+            int count = 0;
+            String[] row = rowMap.get(0);
+            for (; count < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && row != null; count++) {
+                row = rowMap.get(count);
+                assert row != null;
+                x_axis[count] = Double.parseDouble(row[1]);
+                y_axis[count] = Double.parseDouble(row[2]);
+                z_axis[count] = Double.parseDouble(row[3]);
             }
 
-            timeLastMap.put(0, Double.parseDouble(Objects.requireNonNull(rowMap.get(biggestID))[4]) / 1000000000);
-
-            for(int i = 0; i < Configuration.SIGNAL_LENGTH / Configuration.FRAGMENT_LENGTH; i++) {
-                // extract the features for each window in each fragment
-
-                result = extractFeature(0);
-                if(!result) {
-                    return false;
-                }
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return false;
-        } catch (IOException | CsvException e) {
-            e.printStackTrace();
+            computeFeature(x_axis, 0, Configuration.axis.X);
+            computeFeature(y_axis, 0, Configuration.axis.Y);
+            computeFeature(z_axis, 0, Configuration.axis.Z);
         }
-        Log.d(TAG, "Features extracted");
-        try {
-            featureFileWriter.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-            closeFiles();
-            return false;
-        }
-        closeFiles();
-        dataset.delete();
 
-        return true;
+        featureFileWriter.append("Others" + "\n");
+        featureFileWriter.flush();
+        featureFileWriter.close();
     }
 
-    public Boolean extractFeature(Integer key) {
-        Log.d(tag, "extractFeature called \n");
-        double[] x_axis = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
-        double[] y_axis = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
-        double[] z_axis = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
-        int count = 0;
-        try {
-            //Retrieve last inspected row for the previous fragment
-            String[] row = rowMap.get(key);
-            Log.d(tag, "row " + Arrays.toString(row));
-
-            Double tsPrec = timeLastMap.get(key);
-
-            // Inserts in each coordinate all the values of a fragment
-            for (; count < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && row != null; count++) {
-                //For the subsequent read lines, check if there are missing values
-                double ts = Double.parseDouble(row[4])/1000000000;
-                Log.d(tag, "tsNow " +  ts);
-                Log.d(tag, "tsPrec " + tsPrec);
-
-                Double tsNow = (Double.parseDouble(row[4])/1000000000);  //timestamp in seconds
-                if(tsNow <= tsPrec + Configuration.DELTA) {
-                    //There's no missing value, the sample can be added as it is
-                    x_axis[count] = Double.parseDouble(row[0]);
-                    y_axis[count] = Double.parseDouble(row[1]);
-                    z_axis[count] = Double.parseDouble(row[2]);
-
-                    tsPrec = tsNow;
-                }
-                else {
-                    //there is a missing value, the current sample has not been collected at the rate expected
-                    //The missing value is replaced by the mean between the current read value
-                    //and the previous one
-                    //The previous timestamp is updated referring to the sampling rate
-                    if (count == 0) {
-                        //It's the first line
-                        x_axis[count] = Double.parseDouble(row[0]);
-                        y_axis[count] = Double.parseDouble(row[1]);
-                        z_axis[count] = Double.parseDouble(row[2]);
-                    } else {
-                        x_axis[count] = (Double.parseDouble(row[0]) + x_axis[count - 1]) / 2;
-                        y_axis[count] = (Double.parseDouble(row[1]) + y_axis[count - 1]) / 2;
-                        z_axis[count] = (Double.parseDouble(row[2]) + z_axis[count - 1]) / 2;
-                    }
-                    tsPrec = (tsPrec + (1.0 / Configuration.SAMPLING_RATE));
-                }
-
-            }
-
-            //The received file has not enough data in order to continue for the classification
-            if (count < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE) {
-                Log.d(TAG, "Not enough data in file of sensor with key "+key);
-                Log.d(TAG, "Count value: "+count);
-                return false;
-            }
-            rowMap.put(key, row);
-            timeLastMap.put(key, tsPrec);
-
-            computeFeature(x_axis, key, Configuration.axis.X);
-            computeFeature(y_axis, key, Configuration.axis.Y);
-            computeFeature(z_axis, key, Configuration.axis.Z);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        } catch (IndexOutOfBoundsException e) {
-            Log.d(TAG, "Count: "+count);
-            Log.d(TAG, "KEY: "+key);
-            return false;
-        }
-        return true;
+    public void computeFeature(double[] data, int key, Configuration.axis axis) throws IOException {
+        computeMeanDevStd(data, key, axis);
     }
 
-    public Boolean extractFeatureRotation(Integer key){
-        double[] pitch = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
-        double[] roll = new double[Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE];
-        int count = 0;
-        try {
-            //Retrieve last inspected row for the previous fragment
-            String[] row = rowMap.get(key);
-            Double tsPrec = timeLastMap.get(key);;  //timestamp in seconds;
+    private void computeMeanDevStd(double[] data, int key, Configuration.axis ax) throws IOException{
+        for (int i = 0;
+             i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
+             i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
 
-            // Insert in each coordinate all the values of a fragment
-            for (; count < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && row != null; count++) {
-
-                //For the subsequent read lines, check if there are missing values
-                Double tsNow = (Double.parseDouble(row[2])/1000000000);
-                if(tsNow <= tsPrec + Configuration.DELTA) {
-                    //There's no missing value, the sample can be added as it is
-                    pitch[count] = Double.parseDouble(row[0]);
-                    roll[count] = Double.parseDouble(row[1]);
-                    tsPrec = tsNow;
-                    row = (csvMap.get(key)).readNext();
-                }
-                else {
-                    //there is a missing value, the current sample has not been collected at the rate expected
-                    //The missing value is replaced by the mean between the current read value
-                    //and the previous one
-                    //The previous timestamp is updated referring to the sampling rate
-                    if (count == 0) {
-                        //It's the first line
-                        pitch[count] = Double.parseDouble(row[0]);
-                        roll[count] = Double.parseDouble(row[1]);
-                    } else {
-                        pitch[count] = (Double.parseDouble(row[0]) + pitch[count - 1]) / 2;
-                        roll[count] = (Double.parseDouble(row[1]) + roll[count - 1]) / 2;
-                    }
-                    tsPrec = (tsPrec + (1.0 / Configuration.SAMPLING_RATE));
-                }
-
-            }
-
-            if(count < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE) {
-                return false;
-            }
-
-            rowMap.put(key, row);
-            timeLastMap.put(key, tsPrec);
-
-            computeFeature(pitch, key, Configuration.axis.PITCH);
-            computeFeature(roll, key, Configuration.axis.ROLL);
-
-        }catch(IOException | CsvValidationException e) {
-            e.printStackTrace();
-            return false;
+            double mean = mn.evaluate(data, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE);
+            featureFileWriter.append(mean + ",");
+            featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
+            computeSkewness(data, i);
+            computeKurtosis(data, i);
         }
-        return true;
     }
 
     private void computeSkewness(double[] data, int i) throws IOException{
@@ -331,127 +153,6 @@ public class FeatureExtraction {
             featureFileWriter.append(kurt + ",");
     }
 
-    private void computeMeanDevStd(double[] data, int key, Configuration.axis ax) throws IOException{
-        for (int i = 0;
-             i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
-             i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
-            double mean = mn.evaluate(data, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE);
-            featureFileWriter.append(mean + ",");
-            featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
-            if(key == 2 && ax==Configuration.axis.Z && i!=0) {
-                computeSkewness(data, i);
-            }
-            if(key == 3 && ax==Configuration.axis.X && i==0) {
-                computeKurtosis(data, i);
-            }
-        }
-    }
-
-    private void computeMeanDevStdKurt(double[] data, int key, Configuration.axis ax) throws IOException {
-        for (int i = 0;
-             i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
-             i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
-            double mean = mn.evaluate(data, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE);
-            if(key == 2 && ax==Configuration.axis.Y && i!=0) {
-                featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
-                return;
-            }
-            featureFileWriter.append(mean + ",");
-            featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
-            computeKurtosis(data, i);
-            if(key == 0 && ax==Configuration.axis.Z && i==0 ) {
-                computeSkewness(data, i);
-            }
-        }
-    }
-
-    private void computeGyrXStat(double[] data) throws IOException{
-        for (int i = 0;
-             i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
-             i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
-            double mean = mn.evaluate(data, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE);
-            featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
-            if(i == 0)
-                computeKurtosis(data, i);
-        }
-    }
-
-    private void computeRotRollStat(double[] data) throws IOException{
-        for (int i = 0;
-             i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
-             i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
-            double mean = mn.evaluate(data, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE);
-            featureFileWriter.append(mean + ",");
-            if(i == 0)
-                computeSkewness(data, i);
-            else {
-                featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
-                computeKurtosis(data, i);
-            }
-        }
-    }
-
-    private void computeMeanDevStdSkew(double[] data, int key, Configuration.axis ax) throws IOException{
-        for (int i = 0;
-             i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
-             i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
-            double mean = mn.evaluate(data, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE);
-            featureFileWriter.append(mean + ",");
-            featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
-            if(key == 1 && ax==Configuration.axis.Z && i==0)
-                computeKurtosis(data, i);
-            computeSkewness(data, i);
-        }
-    }
-
-    public void computeFeature(double[] data, int key, Configuration.axis ax) throws IOException{
-        switch(key){
-            case 0:
-                if(ax == Configuration.axis.Y)
-                    computeMeanDevStd(data, key, ax);
-                else
-                    computeMeanDevStdKurt(data, key, ax);
-                break;
-            case 1:
-                if(ax == Configuration.axis.X)
-                    computeGyrXStat(data);
-                else
-                    computeMeanDevStdSkew(data, key, ax);
-                break;
-            case 2:
-                if(ax == Configuration.axis.Y)
-                    computeMeanDevStdKurt(data, key, ax);
-                else
-                    computeMeanDevStd(data, key, ax);
-                break;
-            case 3:
-                if(ax == Configuration.axis.X)
-                    computeMeanDevStd(data, key, ax);
-                else
-                    computeMeanDevStdSkew(data, key, ax);
-                break;
-            case 4:
-                if(ax == Configuration.axis.PITCH)
-                    computeMeanDevStdSkew(data, key, ax);
-                else
-                    computeRotRollStat(data);
-                break;
-            default:
-                break;
-        }
-        if(key == 4 && ax==Configuration.axis.ROLL) {
-            featureFileWriter.append("?\n");
-        }
-    }
-
-    public void closeFiles(){
-        try {
-            if(status) {
-                featureFileWriter.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }
+
 
