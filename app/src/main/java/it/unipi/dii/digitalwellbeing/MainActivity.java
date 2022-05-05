@@ -19,6 +19,7 @@ import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -36,6 +37,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sm;
     private Sensor accelerometer;
     private Sensor proximity;
+    private Sensor gyroscope;
+    private Sensor gravity;
+    private Sensor rotation;
+    private Sensor linear;
 
     private Context ctx;
 
@@ -43,12 +48,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     boolean monitoring = false;
     boolean in_pocket = false;
-    double ax,ay,az;   // these are the acceleration in x,y and z axis
-    int already_recognized = 0;
+    private int counter;
     private File storagePath;
-    File dataset;
-    private FileWriter writerDataset;
-    int id = 0;
+
+    private File accel;
+    private File gyr;
+    private File rot;
+    private File grav;
+    private File linearAcc;
+
+    private FileWriter writerAcc;
+    private FileWriter writerGyr;
+    private FileWriter writerRot;
+    private FileWriter writerGrav;
+    private FileWriter writerLin;
+
+    final float[] rotationMatrix = new float[9];
+    final float[] orientationAngles = new float[3];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,23 +74,57 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         storagePath = getApplicationContext().getExternalFilesDir(null);
         Log.d(TAG, "[STORAGE_PATH]: " + storagePath);
 
+        counter = 0;
+
         // Setup sensors
         sensorSetup();
     }
 
     private
     void sensorSetup(){
+
         sm = (SensorManager)getSystemService(SENSOR_SERVICE);
         accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         proximity = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        gyroscope = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        rotation = sm.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
+        gravity = sm.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        linear = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
-        if(accelerometer == null || proximity == null) {
+        if(accelerometer == null || proximity == null || gyroscope == null
+                || rotation == null || gravity == null || linear == null) {
             Log.d(TAG, "Sensor(s) unavailable");
             finish();
         }
 
-        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_NORMAL);
+        while(true) {
+            File counter_value = new File(storagePath + "/SensorData_Acc_" + counter + ".csv");
+            if(!counter_value.exists()) {
+                break;
+            } else {
+                counter++;
+            }
+        }
+
+        accel = new File(storagePath, "SensorData_Acc_"+counter+".csv");
+        gyr = new File(storagePath, "SensorData_Gyr_"+counter+".csv");
+        rot = new File(storagePath, "SensorData_Rot_"+counter+".csv");
+        grav = new File(storagePath, "SensorData_Grav_"+counter+".csv");
+        linearAcc = new File(storagePath, "SensorData_LinAcc_"+counter+".csv");
+
+        try {
+            writerAcc = new FileWriter(accel);
+            writerGyr = new FileWriter(gyr);
+            writerRot = new FileWriter(rot);
+            writerGrav = new FileWriter(grav);
+            writerLin = new FileWriter(linearAcc);
+        } catch (IOException e) {
+            e.printStackTrace();
+            //FileWriter creation could be failed so the rate must be reset on low frequency rate
+            Log.d(TAG,"Some writer is failed");
+            stopListener();
+            sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        }
     }
 
     @Override
@@ -82,6 +132,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onResume();
         sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(this, gravity, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(this, rotation, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(this, linear, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
@@ -90,150 +144,86 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sm.unregisterListener(this);
     }
 
-    @SuppressLint("SetTextI18n")
     @Override
     public void onSensorChanged(SensorEvent event) {
 
         if(monitoring) {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                ax = event.values[0];
-                ay = event.values[1];
-                az = event.values[2];
-                TextView tv = (TextView) findViewById(R.id.provaID);
-                tv.setText(MessageFormat.format("ax: {0}, ay: {1}, az: {2}\n", ax, ay, az));
-
-                if ( checkRangeDownwardsPocket(event) && in_pocket ) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET");
-
-                } else if ( checkRangeUpwardsPocket(event) && in_pocket) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET");
-
-                } else if ( checkRangeHandheld(event) && !in_pocket) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Handheld");
-                    Log.i(TAG, " Handheld ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "OTHER");
-
-                } else if ( checkRangeTable(event) && !in_pocket) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Table");
-                    Log.i(TAG, " On the table ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "OTHER");
-
-                } else {
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "OTHER");
-
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Other");
-                    Log.i(TAG, " Not in trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                try {
+                    writerAcc.append(temp);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             } else if(event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
                 in_pocket = event.values[0] == 0;
+            } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                try {
+                    writerGyr.append(temp);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                try {
+                    writerLin.append(temp);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+                SensorManager.getOrientation(rotationMatrix, orientationAngles);
+                String temp = (Math.toDegrees(orientationAngles[1])) + "," + (Math.toDegrees(orientationAngles[2])) + "," + event.timestamp + ",\n";
+                try {
+                    writerRot.append(temp);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                try {
+                    writerGrav.append(temp);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
 
-    private void appendToCSV(int id, double x, double y, double z, long timestamp, FileWriter writer, String tag) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(id);
-        sb.append(',');
-        sb.append(x);
-        sb.append(',');
-        sb.append(y);
-        sb.append(',');
-        sb.append(z);
-        sb.append(',');
-        sb.append(timestamp);
-        sb.append(',');
-        sb.append(tag);
-        sb.append('\n');
-
-        this.id++;
-
-        try {
-            writer.append(sb.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public boolean checkRangePocket(SensorEvent event) {
+        return (event.values[0] >= Configuration.X_LOWER_BOUND_POCKET && event.values[0] <= Configuration.X_UPPER_BOUND_POCKET) &&
+                (event.values[1] >= Configuration.Y_LOWER_BOUND_POCKET && event.values[1] <= Configuration.Y_UPPER_BOUND_POCKET) &&
+                (event.values[2] >= Configuration.Z_LOWER_BOUND_POCKET && event.values[2] <= Configuration.Z_UPPER_BOUND_POCKET);
     }
 
-    public boolean checkRangeUpwardsPocket(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_UPWARDS && event.values[0] <= Configuration.X_UPPER_BOUND_UPWARDS) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_UPWARDS && event.values[1] <= Configuration.Y_UPPER_BOUND_UPWARDS) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_UPWARDS && event.values[2] <= Configuration.Z_UPPER_BOUND_UPWARDS);
-    }
-
-    public boolean checkRangeDownwardsPocket(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_DOWNWARDS && event.values[0] <= Configuration.X_UPPER_BOUND_DOWNWARDS) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_DOWNWARDS && event.values[1] <= Configuration.Y_UPPER_BOUND_DOWNWARDS) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_DOWNWARDS && event.values[2] <= Configuration.Z_UPPER_BOUND_DOWNWARDS);
-    }
-
-    public boolean checkRangeHandheld(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_HANDHELD && event.values[0] <= Configuration.X_UPPER_BOUND_HANDHELD) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_HANDHELD && event.values[1] <= Configuration.Y_UPPER_BOUND_HANDHELD) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_HANDHELD && event.values[2] <= Configuration.Z_UPPER_BOUND_HANDHELD);
-    }
-
-    public boolean checkRangeTable(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_TABLE && event.values[0] <= Configuration.X_UPPER_BOUND_TABLE) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_TABLE && event.values[1] <= Configuration.Y_UPPER_BOUND_TABLE) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_TABLE && event.values[2] <= Configuration.Z_UPPER_BOUND_TABLE);
-    }
-
-     public void startMonitoring(View view) throws CsvValidationException, IOException {
+    public void startMonitoring(View view) throws CsvValidationException, IOException {
 
 
         if(!monitoring) {
-            dataset = new File(storagePath, "dataset_accelerometer_unlabeled.csv");
-            
-            try {
-                writerDataset = new FileWriter(dataset);
-
-                StringBuilder sb = new StringBuilder();
-                sb.append("id");
-                sb.append(',');
-                sb.append("ax");
-                sb.append(',');
-                sb.append("ay");
-                sb.append(',');
-                sb.append("az");
-                sb.append(',');
-                sb.append("timestamp");
-                sb.append('\n');
-
-                writerDataset.append(sb);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
             Button start_button = (Button)findViewById(R.id.start);
             start_button.setText("STOP");
             monitoring = true;
-
         } else {
-
             stopListener();
             Button stop_button = (Button)findViewById(R.id.start);
             stop_button.setText("START");
 
-            //FeatureExtraction fe = new FeatureExtraction(this);
-            //fe.extractFeatures();
+            FeatureExtraction fe = new FeatureExtraction(this);
+            int counter_new = 0;
+            while(true) {
+                File counter_value = new File(storagePath + "/SensorData_Acc_" + counter + ".csv");
+                if(!counter_value.exists()) {
+                    break;
+                } else {
+                    fe.calculateFeatures(counter_new);
+                    counter_new++;
+                }
+            }
+
             RandomForestClassifier rfc = new RandomForestClassifier(this);
             double result = rfc.classify();
-
-            Log.d("RESULT", "Result:  " + result);
-            TextView result_label = (TextView) findViewById(R.id.result);
-            result_label.setText(String.valueOf(result));
-
-
-         }
+        }
 
     }
 
@@ -242,8 +232,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             sm.unregisterListener(this);
 
         try {
-            writerDataset.flush();
-            writerDataset.close();
+            writerAcc.flush();
+            writerAcc.close();
+            writerGyr.flush();
+            writerGyr.close();
+            writerRot.flush();
+            writerRot.close();
+            writerGrav.flush();
+            writerGrav.close();
+            writerLin.flush();
+            writerLin.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
