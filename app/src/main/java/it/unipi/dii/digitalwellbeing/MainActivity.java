@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,6 +14,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -28,7 +30,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sm;
     private Sensor accelerometer;
     private Sensor proximity;
-
+    private BLEScanner BLEScanner;
+    public static final int REQUEST_ENABLE_BT = 1;
     private static String TAG = "DigitalWellBeing";
 
     boolean monitoring = false;
@@ -44,6 +47,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Utils.toast(getApplicationContext(), "BLE not supported");
+            finish();
+        }
+
+        BLEScanner = new BLEScanner(this, 5000, -75);
 
         storagePath = getApplicationContext().getExternalFilesDir(null);
         Log.d(TAG, "[STORAGE_PATH]: " + storagePath);
@@ -262,4 +272,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Log.i(TAG, "Accuracy changed");
     }
 
+    public void startScan(){
+        BLEScanner.start();
+    }
+    public void stopScan(){
+        BLEScanner.stop();
+    }
 }
