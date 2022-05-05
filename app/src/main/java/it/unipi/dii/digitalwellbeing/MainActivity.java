@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import com.opencsv.CSVReader;
@@ -50,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     boolean in_pocket = false;
     private int counter;
     private File storagePath;
+    String activity_tag = "";
 
     private File accel;
     private File gyr;
@@ -91,11 +93,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gravity = sm.getDefaultSensor(Sensor.TYPE_GRAVITY);
         linear = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
-        if(accelerometer == null || proximity == null || gyroscope == null
-                || rotation == null || gravity == null || linear == null) {
-            Log.d(TAG, "Sensor(s) unavailable");
-            finish();
-        }
+        //if(accelerometer == null || proximity == null || gyroscope == null
+        //        || rotation == null || gravity == null || linear == null) {
+        //    Log.d(TAG, "Sensor(s) unavailable");
+        //    finish();
+        //}
 
         while(true) {
             File counter_value = new File(storagePath + "/SensorData_Acc_" + counter + ".csv");
@@ -149,45 +151,33 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if(monitoring) {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
-                try {
-                    writerAcc.append(temp);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerAcc);
             } else if(event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
                 in_pocket = event.values[0] == 0;
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
-                try {
-                    writerGyr.append(temp);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerGyr);
             } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
-                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
-                try {
-                    writerLin.append(temp);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerLin);
             } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
                 SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
                 SensorManager.getOrientation(rotationMatrix, orientationAngles);
-                String temp = (Math.toDegrees(orientationAngles[1])) + "," + (Math.toDegrees(orientationAngles[2])) + "," + event.timestamp + ",\n";
-                try {
-                    writerRot.append(temp);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                String temp = (Math.toDegrees(orientationAngles[1])) + "," + (Math.toDegrees(orientationAngles[2])) + "," + event.timestamp + ","  + activity_tag + ",\n";
+                appendToCSV(temp, writerRot);
             } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
-                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
-                try {
-                    writerGrav.append(temp);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerGrav);
             }
+        }
+    }
+
+    private void appendToCSV(String temp, FileWriter writer) {
+        try {
+            writer.append(temp);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -199,30 +189,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void startMonitoring(View view) throws CsvValidationException, IOException {
 
+        CheckBox putdown = (CheckBox)findViewById(R.id.putdown);
+        CheckBox pickup = (CheckBox)findViewById(R.id.pickup);
+        CheckBox other = (CheckBox)findViewById(R.id.other);
 
         if(!monitoring) {
-            Button start_button = (Button)findViewById(R.id.start);
-            start_button.setText("STOP");
+            if (putdown.isChecked()) {
+                activity_tag = "PUTDOWN";
+            } else if (pickup.isChecked()) {
+                activity_tag = "PICKUP";
+            } else if (other.isChecked()) {
+                activity_tag = "OTHER";
+            }
+
             monitoring = true;
+            Button start_button = (Button) findViewById(R.id.start);
+            start_button.setText("STOP");
         } else {
-            stopListener();
             Button stop_button = (Button)findViewById(R.id.start);
             stop_button.setText("START");
 
-            FeatureExtraction fe = new FeatureExtraction(this);
-            int counter_new = 0;
-            while(true) {
-                File counter_value = new File(storagePath + "/SensorData_Acc_" + counter + ".csv");
-                if(!counter_value.exists()) {
-                    break;
-                } else {
-                    fe.calculateFeatures(counter_new);
-                    counter_new++;
-                }
-            }
+            putdown.setChecked(false);
+            pickup.setChecked(false);
+            other.setChecked(false);
 
-            RandomForestClassifier rfc = new RandomForestClassifier(this);
-            double result = rfc.classify();
+            monitoring = false;
         }
 
     }
