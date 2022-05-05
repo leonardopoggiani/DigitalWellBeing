@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import com.opencsv.CSVReader;
@@ -189,9 +190,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void startMonitoring(View view) throws CsvValidationException, IOException {
 
-        CheckBox putdown = (CheckBox)findViewById(R.id.putdown);
-        CheckBox pickup = (CheckBox)findViewById(R.id.pickup);
-        CheckBox other = (CheckBox)findViewById(R.id.other);
+        RadioButton putdown = (RadioButton) findViewById(R.id.putdown);
+        RadioButton pickup = (RadioButton) findViewById(R.id.pickup);
+        RadioButton other = (RadioButton) findViewById(R.id.other);
 
         if(!monitoring) {
             if (putdown.isChecked()) {

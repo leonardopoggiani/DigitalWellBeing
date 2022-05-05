@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">DigitalWellBeing</string>
     <string name="start">START</string>
+    <string name="put_the_phone_in_the_pocket">Put the phone in the pocket</string>
+    <string name="picking_phone_from_pocket">Picking phone from pocket</string>
+    <string name="any_other_activity">Any other activity</string>
+    <string name="picking_phone_from_the_pocket">Picking phone from the pocket</string>
 </resources>
