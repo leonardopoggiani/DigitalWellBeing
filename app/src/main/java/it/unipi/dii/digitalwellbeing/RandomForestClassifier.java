@@ -22,7 +22,7 @@ public class RandomForestClassifier {
         this.ctx = ctx;
         this.randomForest = new RandomForest();
         try {
-            randomForest = (RandomForest) SerializationHelper.read(ctx.getAssets().open("pocketClassifier.model"));
+            randomForest = (RandomForest) SerializationHelper.read(ctx.getAssets().open("pickupClassifier.model"));
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -57,7 +57,7 @@ public class FeatureExtraction {
 
         status = true;
 
-        featureFile = new File(ctx.getExternalFilesDir(null), "unlabeledData.arff");
+        featureFile = new File(ctx.getExternalFilesDir(null), "labeledData.arff");
         try {
             // The file doesn't exists -> The header of the arff file has to be created
             featureFileWriter = new FileWriter(featureFile);
@@ -78,69 +78,70 @@ public class FeatureExtraction {
     private void headerBuild(FileWriter file, int windowsSize) throws IOException{
         file.write("@RELATION trainingSet \n \n");
 
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
             file.append("@ATTRIBUTE AccX_win" + i + "_mean REAL\n@ATTRIBUTE AccX_win" + i + "_stDv REAL\n@ATTRIBUTE AccX_win" + i + "_kurtosis REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE AccY_win" + i + "_mean REAL\n@ATTRIBUTE AccY_win" + i + "_stDv REAL\n");
+            file.append("@ATTRIBUTE AccX_win" + i + "_skewness REAL\n");
+        }
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
+            file.append("@ATTRIBUTE AccY_win" + i + "_mean REAL\n@ATTRIBUTE AccY_win" + i + "_stDv REAL\n@ATTRIBUTE AccY_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE AccY_win" + i + "_skewness REAL\n");
+        }
         for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
             file.append("@ATTRIBUTE AccZ_win" + i + "_mean REAL\n@ATTRIBUTE AccZ_win" + i + "_stDv REAL\n@ATTRIBUTE AccZ_win" + i + "_kurtosis REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE AccZ_win" + i + "_skewness REAL\n");
+            file.append("@ATTRIBUTE AccZ_win" + i + "_skewness REAL\n");
         }
         for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
-            file.append("@ATTRIBUTE GyrX_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE GyrX_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GyrX_win" + i + "_mean REAL\n@ATTRIBUTE GyrX_win" + i + "_stDv REAL\n@ATTRIBUTE GyrX_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GyrX_win" + i + "_skewness REAL\n");
         }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE GyrY_win" + i + "_mean REAL\n@ATTRIBUTE GyrY_win" + i + "_stDv REAL\n@ATTRIBUTE GyrY_win" + i + "_skewness REAL\n");
-
         for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
-            file.append("@ATTRIBUTE GyrZ_win" + i + "_mean REAL\n@ATTRIBUTE GyrZ_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE GyrZ_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GyrY_win" + i + "_mean REAL\n@ATTRIBUTE GyrY_win" + i + "_stDv REAL\n@ATTRIBUTE GyrY_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GyrY_win" + i + "_skewness REAL\n");
+        }
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
+            file.append("@ATTRIBUTE GyrZ_win" + i + "_mean REAL\n@ATTRIBUTE GyrZ_win" + i + "_stDv REAL\n@ATTRIBUTE GyrZ_win" + i + "_kurtosis REAL\n");
             file.append("@ATTRIBUTE GyrZ_win" + i + "_skewness REAL\n");
         }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE LinAccX_win" + i + "_mean REAL\n@ATTRIBUTE LinAccX_win" + i + "_stDv REAL\n");
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
+            file.append("@ATTRIBUTE LinAccX_win" + i + "_mean REAL\n@ATTRIBUTE LinAccX_win" + i + "_stDv REAL\n@ATTRIBUTE LinAccX_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE LinAccX_win" + i + "_skewness REAL\n");
+        }
         for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
-            if(i == 1)
-                file.append("@ATTRIBUTE LinAccY_win" + i + "_mean REAL\n");
-            file.append("@ATTRIBUTE LinAccY_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE LinAccY_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE LinAccY_win" + i + "_mean REAL\n@ATTRIBUTE LinAccY_win" + i + "_stDv REAL\n@ATTRIBUTE LinAccY_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE LinAccY_win" + i + "_skewness REAL\n");
         }
         for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
-            file.append("@ATTRIBUTE LinAccZ_win" + i + "_mean REAL\n@ATTRIBUTE LinAccZ_win" + i + "_stDv REAL\n");
-            if(i == 2)
-                file.append("@ATTRIBUTE LinAccZ_win" + i + "_skewness REAL\n");
+            file.append("@ATTRIBUTE LinAccZ_win" + i + "_mean REAL\n@ATTRIBUTE LinAccZ_win" + i + "_stDv REAL\n@ATTRIBUTE LinAccZ_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE LinAccZ_win" + i + "_skewness REAL\n");
         }
         for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
-            file.append("@ATTRIBUTE GravX_win" + i + "_mean REAL\n@ATTRIBUTE GravX_win" + i + "_stDv REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE GravX_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GravX_win" + i + "_mean REAL\n@ATTRIBUTE GravX_win" + i + "_stDv REAL\n@ATTRIBUTE GravX_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GravX_win" + i + "_skewness REAL\n");
         }
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE GravY_win" + i + "_mean REAL\n@ATTRIBUTE GravY_win" + i + "_stDv REAL\n@ATTRIBUTE GravY_win" + i + "_skewness REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE GravZ_win" + i + "_mean REAL\n@ATTRIBUTE GravZ_win" + i + "_stDv REAL\n@ATTRIBUTE GravZ_win" + i + "_skewness REAL\n");
-        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++)
-            file.append("@ATTRIBUTE RotPitch_win" + i + "_mean REAL\n@ATTRIBUTE RotPitch_win" + i + "_stDv REAL\n@ATTRIBUTE RotPitch_win" + i + "_skewness REAL\n");
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
+            file.append("@ATTRIBUTE GravY_win" + i + "_mean REAL\n@ATTRIBUTE GravY_win" + i + "_stDv REAL\n@ATTRIBUTE GravY_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GravY_win" + i + "_skewness REAL\n");
+        }
         for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
-            file.append("@ATTRIBUTE RotRoll_win" + i + "_mean REAL\n");
-            if(i == 1)
-                file.append("@ATTRIBUTE RotRoll_win" + i + "_skewness REAL\n");
-            if(i == 2)
-                file.append("@ATTRIBUTE RotRoll_win" + i + "_stDv REAL\n@ATTRIBUTE RotRoll_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GravZ_win" + i + "_mean REAL\n@ATTRIBUTE GravZ_win" + i + "_stDv REAL\n@ATTRIBUTE GravZ_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE GravZ_win" + i + "_skewness REAL\n");
+        }
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++) {
+            file.append("@ATTRIBUTE RotPitch_win" + i + "_mean REAL\n@ATTRIBUTE RotPitch_win" + i + "_stDv REAL\n@ATTRIBUTE RotPitch_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE RotPitch_win" + i + "_skewness REAL\n");
+        }
+        for (int i = 1; i <= Configuration.FRAGMENT_LENGTH/windowsSize; i++){
+            file.append("@ATTRIBUTE RotRoll_win" + i + "_mean REAL\n@ATTRIBUTE RotRoll_win" + i + "_stDv REAL\n@ATTRIBUTE RotRoll_win" + i + "_kurtosis REAL\n");
+            file.append("@ATTRIBUTE RotRoll_win" + i + "_skewness REAL\n");
         }
 
-        file.append("@ATTRIBUTE class {Others, Washing_Hands}\n" + "\n" + "@DATA\n");
+        file.append("@ATTRIBUTE class {Others, Pickup_Phone}\n" + "\n" + "@DATA\n");
         file.flush();
     }
 
     public Boolean calculateFeatures(int counter) {
         Log.d(TAG, "calculateFeatures called");
-        Log.d(TAG, "COUNTER VALUE: "+counter);
+        Log.d(TAG, "COUNTER VALUE: " + counter);
         if(!status) // an error occurs in the constructor so this method can't be executed
             return false;
 
@@ -167,7 +168,7 @@ public class FeatureExtraction {
             rowMap.put(4,(csvMap.get(4)).readNext());
 
             //Keep the last timestamp of the last row seen
-            timeLastMap.put(0, Double.parseDouble((Objects.requireNonNull(  rowMap.get(0)))[3]));
+            timeLastMap.put(0, Double.parseDouble((Objects.requireNonNull(rowMap.get(0)))[3]));
             timeLastMap.put(1, Double.parseDouble((Objects.requireNonNull(rowMap.get(1)))[3]));
             timeLastMap.put(2, Double.parseDouble((Objects.requireNonNull(rowMap.get(2)))[3]));
             timeLastMap.put(3, Double.parseDouble((Objects.requireNonNull(rowMap.get(3)))[3]));
@@ -184,6 +185,10 @@ public class FeatureExtraction {
                     return result;
                 }
             }
+
+            featureFileWriter.append("?\n");
+
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return false;
@@ -411,55 +416,19 @@ public class FeatureExtraction {
 
     private void computeMeanDevStdSkew(double[] data, int key, Configuration.axis ax) throws IOException{
         for (int i = 0;
-             i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
-             i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
+               i < Configuration.FRAGMENT_LENGTH * Configuration.SAMPLING_RATE && i < data.length;
+               i += (Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE)) {
+
             double mean = mn.evaluate(data, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE);
             featureFileWriter.append(mean + ",");
             featureFileWriter.append(stDv.evaluate(data, mean, i, Configuration.WINDOW_SIZE * Configuration.SAMPLING_RATE) + ",");
-            if(key == 1 && ax==Configuration.axis.Z && i==0)
-                computeKurtosis(data, i);
+            computeKurtosis(data, i);
             computeSkewness(data, i);
         }
     }
 
     public void computeFeature(double[] data, int key, Configuration.axis ax) throws IOException{
-        switch(key){
-            case 0:
-                if(ax == Configuration.axis.Y)
-                    computeMeanDevStd(data, key, ax);
-                else
-                    computeMeanDevStdKurt(data, key, ax);
-                break;
-            case 1:
-                if(ax == Configuration.axis.X)
-                    computeGyrXStat(data);
-                else
-                    computeMeanDevStdSkew(data, key, ax);
-                break;
-            case 2:
-                if(ax == Configuration.axis.Y)
-                    computeMeanDevStdKurt(data, key, ax);
-                else
-                    computeMeanDevStd(data, key, ax);
-                break;
-            case 3:
-                if(ax == Configuration.axis.X)
-                    computeMeanDevStd(data, key, ax);
-                else
-                    computeMeanDevStdSkew(data, key, ax);
-                break;
-            case 4:
-                if(ax == Configuration.axis.PITCH)
-                    computeMeanDevStdSkew(data, key, ax);
-                else
-                    computeRotRollStat(data);
-                break;
-            default:
-                break;
-        }
-        if(key == 4 && ax==Configuration.axis.ROLL) {
-            featureFileWriter.append("?\n");
-        }
+        computeMeanDevStdSkew(data, key, ax);
     }
 
     public void closeFiles(){

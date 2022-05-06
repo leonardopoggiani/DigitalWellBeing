@@ -108,26 +108,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 counter++;
             }
         }
-
-        accel = new File(storagePath, "SensorData_Acc_"+counter+".csv");
-        gyr = new File(storagePath, "SensorData_Gyr_"+counter+".csv");
-        rot = new File(storagePath, "SensorData_Rot_"+counter+".csv");
-        grav = new File(storagePath, "SensorData_Grav_"+counter+".csv");
-        linearAcc = new File(storagePath, "SensorData_LinAcc_"+counter+".csv");
-
-        try {
-            writerAcc = new FileWriter(accel);
-            writerGyr = new FileWriter(gyr);
-            writerRot = new FileWriter(rot);
-            writerGrav = new FileWriter(grav);
-            writerLin = new FileWriter(linearAcc);
-        } catch (IOException e) {
-            e.printStackTrace();
-            //FileWriter creation could be failed so the rate must be reset on low frequency rate
-            Log.d(TAG,"Some writer is failed");
-            stopListener();
-            sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        }
     }
 
     @Override
@@ -206,6 +186,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             monitoring = true;
             Button start_button = (Button) findViewById(R.id.start);
             start_button.setText("STOP");
+
+            accel = new File(storagePath, "SensorData_Acc_"+counter+".csv");
+            gyr = new File(storagePath, "SensorData_Gyr_"+counter+".csv");
+            rot = new File(storagePath, "SensorData_Rot_"+counter+".csv");
+            grav = new File(storagePath, "SensorData_Grav_"+counter+".csv");
+            linearAcc = new File(storagePath, "SensorData_LinAcc_"+counter+".csv");
+
+            try {
+                writerAcc = new FileWriter(accel);
+                writerGyr = new FileWriter(gyr);
+                writerRot = new FileWriter(rot);
+                writerGrav = new FileWriter(grav);
+                writerLin = new FileWriter(linearAcc);
+            } catch (IOException e) {
+                e.printStackTrace();
+                //FileWriter creation could be failed so the rate must be reset on low frequency rate
+                Log.d(TAG,"Some writer is failed");
+                stopListener();
+                sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+
         } else {
             Button stop_button = (Button)findViewById(R.id.start);
             stop_button.setText("START");
@@ -215,6 +216,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             other.setChecked(false);
 
             monitoring = false;
+
+            /* ****************
+
+            FeatureExtraction fe = new FeatureExtraction(this);
+
+            fe.calculateFeatures(0);
+
+            while(true) {
+                File counter_value = new File(storagePath + "/SensorData_Acc_" + counter + ".csv");
+                if(!counter_value.exists()) {
+                    break;
+                } else {
+                    fe.calculateFeatures(counter);
+                    counter++;
+                }
+            }
+
+
+             **************** */
         }
 
     }
