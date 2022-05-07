@@ -107,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     void sensorSetup(){
 
         sm = (SensorManager)getSystemService(SENSOR_SERVICE);
+
         accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         proximity = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         gyroscope = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -133,12 +134,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(this, gravity, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(this, rotation, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(this, linear, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(this, gravity, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(this, rotation, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(this, linear, SensorManager.SENSOR_DELAY_GAME);
     }
 
     @Override
@@ -232,8 +233,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     counter++;
                 }
             }
-
-
              **************** */
         }
 
