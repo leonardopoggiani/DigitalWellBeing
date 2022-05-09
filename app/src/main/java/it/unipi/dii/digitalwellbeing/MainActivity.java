@@ -1,12 +1,7 @@
 package it.unipi.dii.digitalwellbeing;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
-import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -15,31 +10,18 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.RadioButton;
-import android.widget.TextView;
-
-import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 
+import org.tensorflow.lite.DataType;
+import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Objects;
-import org.tensorflow.lite.Interpreter;
 
-
+import it.unipi.dii.digitalwellbeing.ml.PickupClassifier;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -255,22 +237,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // classify the samples
             String sample = "4.81271E+12, -1.4389153, 2.0925324, 10.460267, -0.24927188, -0.1587244, -0.029827405, -0.5200586, 1.8794947, 9.610797, -0.9188567, 0.21303773, 0.84947014";
 
-        } else {
-            Button stop_button = (Button)findViewById(R.id.start);
-            stop_button.setText("START");
-
-            putdown.setChecked(false);
-            pickup.setChecked(false);
-            other.setChecked(false);
-
-            monitoring = false;
-            
             try {
-                PickupClassifier model = PickupClassifier.newInstance(context);
+                PickupClassifier model = PickupClassifier.newInstance(this);
 
                 // Creates inputs for reference.
                 TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 12}, DataType.FLOAT32);
-                inputFeature0.loadBuffer(byteBuffer);
+                // inputFeature0.loadBuffer(byteBuffer);
 
                 // Runs model inference and gets result.
                 PickupClassifier.Outputs outputs = model.process(inputFeature0);
@@ -281,6 +253,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } catch (IOException e) {
                 // TODO Handle the exception
             }
+        } else {
+            Button stop_button = (Button)findViewById(R.id.start);
+            stop_button.setText("START");
+
+            putdown.setChecked(false);
+            pickup.setChecked(false);
+            other.setChecked(false);
+
+            monitoring = false;
 
             /* ****************
 
