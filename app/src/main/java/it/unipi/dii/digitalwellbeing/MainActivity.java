@@ -3,7 +3,9 @@ package it.unipi.dii.digitalwellbeing;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -21,17 +23,22 @@ import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
+import org.tensorflow.lite.Interpreter;
+
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
@@ -43,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor gravity;
     private Sensor rotation;
     private Sensor linear;
+    private Sensor magnetometer;
 
     private Context ctx;
 
@@ -59,15 +67,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private File rot;
     private File grav;
     private File linearAcc;
+    private File mag;
 
     private FileWriter writerAcc;
     private FileWriter writerGyr;
     private FileWriter writerRot;
     private FileWriter writerGrav;
     private FileWriter writerLin;
+    private FileWriter writerMag;
 
     final float[] rotationMatrix = new float[9];
     final float[] orientationAngles = new float[3];
+
+    protected Interpreter tflite;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         rot = new File(storagePath, "SensorData_Rot_"+counter+".csv");
         grav = new File(storagePath, "SensorData_Grav_"+counter+".csv");
         linearAcc = new File(storagePath, "SensorData_LinAcc_"+counter+".csv");
+        mag = new File(storagePath, "SensorData_Mag_"+counter+".csv");
 
         try {
             writerAcc = new FileWriter(accel);
@@ -91,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             writerRot = new FileWriter(rot);
             writerGrav = new FileWriter(grav);
             writerLin = new FileWriter(linearAcc);
+            writerMag = new FileWriter(mag);
         } catch (IOException e) {
             e.printStackTrace();
             //FileWriter creation could be failed so the rate must be reset on low frequency rate
@@ -114,6 +128,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         rotation = sm.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
         gravity = sm.getDefaultSensor(Sensor.TYPE_GRAVITY);
         linear = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        magnetometer = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         //if(accelerometer == null || proximity == null || gyroscope == null
         //        || rotation == null || gravity == null || linear == null) {
@@ -140,6 +155,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sm.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
         sm.registerListener(this, rotation, SensorManager.SENSOR_DELAY_GAME);
         sm.registerListener(this, linear, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
+
     }
 
     @Override
@@ -166,10 +183,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
                 SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
                 SensorManager.getOrientation(rotationMatrix, orientationAngles);
-                String temp = (Math.toDegrees(orientationAngles[1])) + "," + (Math.toDegrees(orientationAngles[2])) + "," + event.timestamp + ","  + activity_tag + ",\n";
+                String temp = (Math.toDegrees(orientationAngles[0])) + "," + (Math.toDegrees(orientationAngles[1])) + "," + (Math.toDegrees(orientationAngles[2])) + "," + event.timestamp + ","  + activity_tag + ",\n";
                 appendToCSV(temp, writerRot);
             } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerGrav);
+            } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerMag);
+            }
+        } else {
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                appendToCSV(temp, writerAcc);
+            } else if(event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
+                in_pocket = event.values[0] == 0;
+            } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                appendToCSV(temp, writerGyr);
+            } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                appendToCSV(temp, writerLin);
+            } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+                SensorManager.getOrientation(rotationMatrix, orientationAngles);
+                String temp = (Math.toDegrees(orientationAngles[0])) + "," + (Math.toDegrees(orientationAngles[1])) + "," + (Math.toDegrees(orientationAngles[2])) + "," + event.timestamp + ",\n";
+                appendToCSV(temp, writerRot);
+            } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
+                appendToCSV(temp, writerGrav);
+            } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
                 appendToCSV(temp, writerGrav);
             }
         }
@@ -204,9 +248,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 activity_tag = "OTHER";
             }
 
-            monitoring = true;
+            // monitoring = true;
             Button start_button = (Button) findViewById(R.id.start);
             start_button.setText("STOP");
+
+            // classify the samples
+            String sample = "4.81271E+12, -1.4389153, 2.0925324, 10.460267, -0.24927188, -0.1587244, -0.029827405, -0.5200586, 1.8794947, 9.610797, -0.9188567, 0.21303773, 0.84947014";
 
         } else {
             Button stop_button = (Button)findViewById(R.id.start);
@@ -217,6 +264,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             other.setChecked(false);
 
             monitoring = false;
+            
+            try {
+                PickupClassifier model = PickupClassifier.newInstance(context);
+
+                // Creates inputs for reference.
+                TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 12}, DataType.FLOAT32);
+                inputFeature0.loadBuffer(byteBuffer);
+
+                // Runs model inference and gets result.
+                PickupClassifier.Outputs outputs = model.process(inputFeature0);
+                TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
+
+                // Releases model resources if no longer used.
+                model.close();
+            } catch (IOException e) {
+                // TODO Handle the exception
+            }
 
             /* ****************
 
