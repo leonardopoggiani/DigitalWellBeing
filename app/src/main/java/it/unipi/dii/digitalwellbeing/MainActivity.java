@@ -30,7 +30,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sm;
     private Sensor accelerometer;
     private Sensor proximity;
-    private BLEScanner BLEScanner;
     public static final int REQUEST_ENABLE_BT = 1;
     private static String TAG = "DigitalWellBeing";
 
@@ -53,7 +52,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             finish();
         }
 
-        BLEScanner = new BLEScanner(this, 5000, -75);
 
         storagePath = getApplicationContext().getExternalFilesDir(null);
         Log.d(TAG, "[STORAGE_PATH]: " + storagePath);
@@ -272,10 +270,4 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Log.i(TAG, "Accuracy changed");
     }
 
-    public void startScan(){
-        BLEScanner.start();
-    }
-    public void stopScan(){
-        BLEScanner.stop();
-    }
 }

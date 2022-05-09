@@ -15,8 +15,4 @@ public class Utils {
         toast.show();
     }
 
-    public static void requestUserBluetooth(Activity activity) {
-        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        //activity.startActivityForResult(enableBtIntent, MainActivity.REQUEST_ENABLE_BT);
-    }
 }
