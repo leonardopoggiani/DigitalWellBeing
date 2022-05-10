@@ -1,0 +1,37 @@
+
+g	java:S117ƒ"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(ÊçÕÕ
+g	java:S117ó"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(æ¸öØ
+l	java:S117«"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(ç”¯‡ýÿÿÿÿ
+i	java:S1163"TRename this field "in_pocket" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(ºµ¢ª
+l	java:S1166"WRename this field "activity_tag" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(Œû©Œ
+c
+java:S30080"NRename this field "TAG" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(«î¸c
+o
+java:S14508"TRemove the "accel" field and declare it as a local variable in the relevant methods.(îÔõóúÿÿÿÿ
+n
+java:S1450;"SRemove the "grav" field and declare it as a local variable in the relevant methods.(£Ö–­úÿÿÿÿ
+m
+java:S14509"RRemove the "gyr" field and declare it as a local variable in the relevant methods.(‹“„Ëþÿÿÿÿ
+n
+java:S1450<"XRemove the "linearAcc" field and declare it as a local variable in the relevant methods.(ï‘Š¹
+h
+java:S1450="RRemove the "mag" field and declare it as a local variable in the relevant methods.(ÓÆù®
+h
+java:S1450:"RRemove the "rot" field and declare it as a local variable in the relevant methods.(ú²¼à
+P	java:S125|"<This block of commented-out lines of code should be removed.(À»ç8
+n
+java:S3776 "RRefactor this method to reduce its Cognitive Complexity from 18 to the 15 allowed.(¡Ž¯âþÿÿÿÿ
+i
+java:S3776ã"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÁÖ¶È
+¥
+java:S1130ã"†Remove the declaration of thrown exception 'com.opencsv.exceptions.CsvValidationException', as it cannot be thrown from method's body.(ÁÖ¶È8ôðÇïŠ0
+B
+java:S1172ã"+Remove this unused method parameter "view".(ÁÖ¶È
+R	java:S125ò"<This block of commented-out lines of code should be removed.(éò­Á
+B
+java:S1481÷"+Remove this unused "sample" local variable.(ÙÇ‰ž
+N
+java:S1135¨"2Complete the task associated to this TODO comment.(‰—·äþÿÿÿÿ
+W	java:S125¶"<This block of commented-out lines of code should be removed.(¢Å”èÿÿÿÿÿ
+B
+java:S1068."'Remove this unused "ctx" private field.(ÖÖ¾­þÿÿÿÿ

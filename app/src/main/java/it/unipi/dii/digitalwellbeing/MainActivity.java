@@ -205,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 appendToCSV(temp, writerGrav);
             } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + ",\n";
-                appendToCSV(temp, writerGrav);
+                appendToCSV(temp, writerMag);
             }
         }
     }
@@ -253,57 +253,45 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 // Creates inputs for reference.
 
                 // here i have to read the .csv data
-                CSVReader csvReader = new CSVReader(new FileReader(new File(storagePath + "/merged_unlabeled.csv")));
-                List<String[]> list = csvReader.readAll();
+                try (CSVReader csvReader = new CSVReader(new FileReader(new File(storagePath + "/merged_unlabeled.csv")))) {
+                    List<String[]> list = csvReader.readAll();
 
-                float[] dataArr = new float[12];
+                    float[] dataArr = new float[12];
 
-                Log.d(TAG, "list length: " + list.size());
+                    Log.d(TAG, "list length: " + list.size());
 
-                for(int row = 0; row<15; row++){
-                    String [] thisRowStrings = list.get(row);
-                    Log.d(TAG, "rowString length: " + thisRowStrings.length);
+                    for (int row = 0; row < 15; row++) {
+                        String[] thisRowStrings = list.get(row);
+                        Log.d(TAG, "rowString length: " + thisRowStrings.length);
 
-                    for(int c=0; c<11; c++){
-                        Log.d(TAG, "rowString: " + thisRowStrings[c]);
+                        for (int c = 0; c < 11; c++) {
+                            Log.d(TAG, "rowString: " + thisRowStrings[c]);
 
-                        dataArr[c]=Float.parseFloat(thisRowStrings[c]);
+                            dataArr[c] = Float.parseFloat(thisRowStrings[c]);
+                        }
+
+                        Log.d(TAG, "shape: " + dataArr.length + ", " + Arrays.toString(dataArr));
+                        int[] shape = new int[]{1, 12};
+                        TensorBuffer tensorBuffer = TensorBuffer.createFixedSize(shape, DataType.FLOAT32);
+                        tensorBuffer.loadArray(dataArr);
+
+                        inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 12, 1}, DataType.FLOAT32);
+                        ByteBuffer byteBuffer = tensorBuffer.getBuffer();
+                        inputFeature0.loadBuffer(byteBuffer);
+
+                        // Runs model inference and gets result.
+                        PickupClassifier.Outputs outputs = model.process(inputFeature0);
+                        TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
+                        float[] data = outputFeature0.getFloatArray();
+
+                        for (float datum : data) {
+                            Log.d(TAG, "output: " + datum + "\n");
+                        }
                     }
 
-                    Log.d(TAG, "shape: " + dataArr.length + ", " + Arrays.toString(dataArr));
-                    int[] shape = new int[] {1, 12};
-                    TensorBuffer tensorBuffer = TensorBuffer.createFixedSize(shape, DataType.FLOAT32);
-                    tensorBuffer.loadArray(dataArr);
-
-                    inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 12, 1}, DataType.FLOAT32);
-                    ByteBuffer byteBuffer = tensorBuffer.getBuffer();
-                    inputFeature0.loadBuffer(byteBuffer);
-
-                    // Runs model inference and gets result.
-                    PickupClassifier.Outputs outputs = model.process(inputFeature0);
-                    TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
-                    float[] data = outputFeature0.getFloatArray();
-
-                    for (float datum : data) {
-                        Log.d(TAG, "output: " + datum + "\n");
-                    }
+                    // Releases model resources if no longer used.
+                    model.close();
                 }
-
-                //
-
-                TensorBuffer tensorBuffer = TensorBuffer.createDynamic(DataType.FLOAT32);
-                tensorBuffer.loadArray(dataArr);
-
-                ByteBuffer byteBuffer = tensorBuffer.getBuffer();
-                inputFeature0.loadBuffer(byteBuffer);
-
-                // Runs model inference and gets result.
-                PickupClassifier.Outputs outputs = model.process(inputFeature0);
-                TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
-                float[] data = outputFeature0.getFloatArray();
-
-                // Releases model resources if no longer used.
-                model.close();
             } catch (IOException | CsvException e) {
                 // TODO Handle the exception
             }
