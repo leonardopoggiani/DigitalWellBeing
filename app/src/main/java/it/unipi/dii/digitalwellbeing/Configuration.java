@@ -13,7 +13,6 @@ public class Configuration {
 
     // Range values for accelerometer {
 
-    // smartphone leaning on the table
     static final double X_LOWER_BOUND_POCKET = -1.0;
     static final double X_UPPER_BOUND_POCKET = 1.0;
     static final double Y_LOWER_BOUND_POCKET = -1.0;

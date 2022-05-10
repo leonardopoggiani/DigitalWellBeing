@@ -11,6 +11,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioButton;
+
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvException;
 import com.opencsv.exceptions.CsvValidationException;
 
 import org.tensorflow.lite.DataType;
@@ -18,8 +21,14 @@ import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 
 import it.unipi.dii.digitalwellbeing.ml.PickupClassifier;
 
@@ -236,21 +245,66 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             // classify the samples
             String sample = "4.81271E+12, -1.4389153, 2.0925324, 10.460267, -0.24927188, -0.1587244, -0.029827405, -0.5200586, 1.8794947, 9.610797, -0.9188567, 0.21303773, 0.84947014";
+            TensorBuffer inputFeature0 = null;
 
             try {
                 PickupClassifier model = PickupClassifier.newInstance(this);
 
                 // Creates inputs for reference.
-                TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 12}, DataType.FLOAT32);
-                // inputFeature0.loadBuffer(byteBuffer);
+
+                // here i have to read the .csv data
+                CSVReader csvReader = new CSVReader(new FileReader(new File(storagePath + "/merged_unlabeled.csv")));
+                List<String[]> list = csvReader.readAll();
+
+                float[] dataArr = new float[12];
+
+                Log.d(TAG, "list length: " + list.size());
+
+                for(int row = 0; row<15; row++){
+                    String [] thisRowStrings = list.get(row);
+                    Log.d(TAG, "rowString length: " + thisRowStrings.length);
+
+                    for(int c=0; c<11; c++){
+                        Log.d(TAG, "rowString: " + thisRowStrings[c]);
+
+                        dataArr[c]=Float.parseFloat(thisRowStrings[c]);
+                    }
+
+                    Log.d(TAG, "shape: " + dataArr.length + ", " + Arrays.toString(dataArr));
+                    int[] shape = new int[] {1, 12};
+                    TensorBuffer tensorBuffer = TensorBuffer.createFixedSize(shape, DataType.FLOAT32);
+                    tensorBuffer.loadArray(dataArr);
+
+                    inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 12, 1}, DataType.FLOAT32);
+                    ByteBuffer byteBuffer = tensorBuffer.getBuffer();
+                    inputFeature0.loadBuffer(byteBuffer);
+
+                    // Runs model inference and gets result.
+                    PickupClassifier.Outputs outputs = model.process(inputFeature0);
+                    TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
+                    float[] data = outputFeature0.getFloatArray();
+
+                    for (float datum : data) {
+                        Log.d(TAG, "output: " + datum + "\n");
+                    }
+                }
+
+                //
+
+                TensorBuffer tensorBuffer = TensorBuffer.createDynamic(DataType.FLOAT32);
+                tensorBuffer.loadArray(dataArr);
+
+                ByteBuffer byteBuffer = tensorBuffer.getBuffer();
+                inputFeature0.loadBuffer(byteBuffer);
 
                 // Runs model inference and gets result.
                 PickupClassifier.Outputs outputs = model.process(inputFeature0);
                 TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
+                float[] data = outputFeature0.getFloatArray();
 
                 // Releases model resources if no longer used.
                 model.close();
-            } catch (IOException e) {
+            } catch (IOException | CsvException e) {
                 // TODO Handle the exception
             }
         } else {
