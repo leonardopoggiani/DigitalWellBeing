@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioButton;
+import android.widget.TextView;
 
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvException;
@@ -147,7 +148,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sm.registerListener(this, rotation, SensorManager.SENSOR_DELAY_GAME);
         sm.registerListener(this, linear, SensorManager.SENSOR_DELAY_GAME);
         sm.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
-
     }
 
     @Override
@@ -244,13 +244,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             start_button.setText("STOP");
 
             // classify the samples
-            String sample = "4.81271E+12, -1.4389153, 2.0925324, 10.460267, -0.24927188, -0.1587244, -0.029827405, -0.5200586, 1.8794947, 9.610797, -0.9188567, 0.21303773, 0.84947014";
             TensorBuffer inputFeature0 = null;
 
             try {
                 PickupClassifier model = PickupClassifier.newInstance(this);
-
-                // Creates inputs for reference.
 
                 // here i have to read the .csv data
                 try (CSVReader csvReader = new CSVReader(new FileReader(new File(storagePath + "/merged_unlabeled.csv")))) {
@@ -284,9 +281,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
                         float[] data = outputFeature0.getFloatArray();
 
-                        for (float datum : data) {
-                            Log.d(TAG, "output: " + datum + "\n");
+                        // Releases model resources if no longer used.
+                        TextView tv= findViewById(R.id.activity);
+
+                        tv.setText(outputFeature0.getDataType().toString());
+                        if(data[0] == 1.0) {
+                            tv.setText("Other activities");
+                        } else {
+                            tv.setText("Picking up phone!");
                         }
+
+                        Log.d(TAG, "predictActivities: output array: " + Arrays.toString(outputFeature0.getFloatArray()));
                     }
 
                     // Releases model resources if no longer used.
@@ -304,23 +309,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             other.setChecked(false);
 
             monitoring = false;
-
-            /* ****************
-
-            FeatureExtraction fe = new FeatureExtraction(this);
-
-            fe.calculateFeatures(0);
-
-            while(true) {
-                File counter_value = new File(storagePath + "/SensorData_Acc_" + counter + ".csv");
-                if(!counter_value.exists()) {
-                    break;
-                } else {
-                    fe.calculateFeatures(counter);
-                    counter++;
-                }
-            }
-             **************** */
         }
 
     }
@@ -340,6 +328,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             writerGrav.close();
             writerLin.flush();
             writerLin.close();
+            writerMag.flush();
+            writerMag.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
