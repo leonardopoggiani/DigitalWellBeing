@@ -215,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     toBeClassified.get(event.timestamp).add(event.values[2]);
                 }
 
-                if(toBeClassified.size() >= 2) {
+                if(toBeClassified.size() >= 5) {
                     classifyFiftySamples();
                 }
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
@@ -241,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     toBeClassified.get(event.timestamp).add(event.values[2]);
                 }
 
-                if(toBeClassified.size() >= 2) {
+                if(toBeClassified.size() >= 5) {
                     classifyFiftySamples();
                 }
 
@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     toBeClassified.get(event.timestamp).add(event.values[2]);
                 }
 
-                if(toBeClassified.size() >= 2) {
+                if(toBeClassified.size() >= 5) {
                     classifyFiftySamples();
                 }
             } /*else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
@@ -317,7 +317,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     toBeClassified.get(event.timestamp).add(event.values[2]);
                 }
 
-                if(toBeClassified.size() >= 2) {
+                if(toBeClassified.size() >= 5) {
                     classifyFiftySamples();
                 }
 
