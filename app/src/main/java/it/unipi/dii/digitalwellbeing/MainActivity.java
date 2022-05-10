@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accelerometer;
     private Sensor proximity;
     public static final int REQUEST_ENABLE_BT = 1;
+
     private static String TAG = "DigitalWellBeing";
 
     boolean monitoring = false;
