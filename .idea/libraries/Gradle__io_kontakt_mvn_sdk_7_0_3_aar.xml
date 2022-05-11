@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="Gradle: io.kontakt.mvn:sdk:7.0.3@aar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-3/7393262915c700deafea7220de6a912e/transformed/sdk-7.0.3/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/7393262915c700deafea7220de6a912e/transformed/sdk-7.0.3/res" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/7393262915c700deafea7220de6a912e/transformed/sdk-7.0.3/AndroidManifest.xml" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.kontakt.mvn/sdk/7.0.3/a88c89e5f8adbfa040fe813b4a9992eeea35cedb/sdk-7.0.3-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.kontakt.mvn/sdk/7.0.3/90b2474b8b52c19b7296bc5920f84e765f866772/sdk-7.0.3-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

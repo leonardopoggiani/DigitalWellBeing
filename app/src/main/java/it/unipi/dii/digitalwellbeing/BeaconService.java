@@ -7,105 +7,138 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
-import org.altbeacon.beacon.BeaconConsumer;
-import org.altbeacon.beacon.MonitorNotifier;
-import org.altbeacon.beacon.Region;
+import com.kontakt.sdk.android.ble.configuration.ScanMode;
+import com.kontakt.sdk.android.ble.configuration.ScanPeriod;
+import com.kontakt.sdk.android.ble.connection.OnServiceReadyListener;
+import com.kontakt.sdk.android.ble.manager.ProximityManager;
+import com.kontakt.sdk.android.ble.manager.ProximityManagerFactory;
+import com.kontakt.sdk.android.ble.manager.listeners.EddystoneListener;
+import com.kontakt.sdk.android.ble.manager.listeners.IBeaconListener;
+import com.kontakt.sdk.android.ble.manager.listeners.simple.SimpleEddystoneListener;
+import com.kontakt.sdk.android.ble.manager.listeners.simple.SimpleIBeaconListener;
+import com.kontakt.sdk.android.common.profile.IBeaconDevice;
+import com.kontakt.sdk.android.common.profile.IBeaconRegion;
+import com.kontakt.sdk.android.common.profile.IEddystoneDevice;
+import com.kontakt.sdk.android.common.profile.IEddystoneNamespace;
+import com.kontakt.sdk.android.common.profile.RemoteBluetoothDevice;
 
+import java.util.concurrent.TimeUnit;
 
-public class BeaconService extends Service implements BeaconConsumer,MonitorNotifier {
-    @Nullable
+public class BeaconService extends Service {
+
+    public static final String TAG = "BackgroundScanService";
+    public static final String ACTION_DEVICE_DISCOVERED = "DeviceDiscoveredAction";
+    public static final String EXTRA_DEVICE = "DeviceExtra";
+    public static final String EXTRA_DEVICES_COUNT = "DevicesCountExtra";
+
+    private static final long TIMEOUT = TimeUnit.SECONDS.toMillis(30);
+
+    private final Handler handler = new Handler();
+    private ProximityManager proximityManager;
+    private boolean isRunning; // Flag indicating if service is already running.
+    private int devicesCount; // Total discovered devices count
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        //setupProximityManager();
+        Toast.makeText(this, "Service is running.", Toast.LENGTH_SHORT).show();
+        isRunning = false;
+        Log.i("BeaconService:", "OnCreate");
+    }
+
+    private void setupProximityManager() {
+        //Create proximity manager instance
+        proximityManager = ProximityManagerFactory.create(this);
+
+        //Configure proximity manager basic options
+        proximityManager.configuration()
+                //Using ranging for continuous scanning or MONITORING for scanning with intervals
+                .scanPeriod(ScanPeriod.RANGING)
+                //Using BALANCED for best performance/battery ratio
+                .scanMode(ScanMode.BALANCED);
+
+        //Setting up iBeacon and Eddystone listeners
+        proximityManager.setIBeaconListener(createIBeaconListener());
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        //Check if service is already active
+        Toast.makeText(this, "Service is running.", Toast.LENGTH_SHORT).show();
+        if (isRunning) {
+            Toast.makeText(this, "Service is already running.", Toast.LENGTH_SHORT).show();
+            return START_STICKY;
+        }
+        //startScanning();
+        isRunning = true;
+        return START_STICKY;
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        // Binding the BeaconNotification Application Class BeaconManager to BeaconService.
-        BeaconNotification.beaconManager.bind(this);
+    private void startScanning() {
+        proximityManager.connect(new OnServiceReadyListener() {
+            @Override
+            public void onServiceReady() {
+                proximityManager.startScanning();
+                devicesCount = 0;
+                Toast.makeText(BeaconService.this, "Scanning service started.", Toast.LENGTH_SHORT).show();
+            }
+        });
+        stopAfterDelay();
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        // Printing to check whether service called inside logcat
-        System.out.println("SERVICE CALLED ------------------------------------------------->");
+    private void stopAfterDelay() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                proximityManager.disconnect();
+                stopSelf();
+            }
+        }, TIMEOUT);
+    }
 
-        return Service.START_STICKY;
+    private IBeaconListener createIBeaconListener() {
+        return new SimpleIBeaconListener() {
+            @Override
+            public void onIBeaconDiscovered(IBeaconDevice ibeacon, IBeaconRegion region) {
+                onDeviceDiscovered(ibeacon);
+                Log.i(TAG, "onIBeaconDiscovered: " + ibeacon.toString());
+            }
+        };
     }
 
 
-    @Override
-    public void onBeaconServiceConnect() {
-        //Specifies a class that should be called each time
-        // the BeaconService sees or stops seeing a Region of beacons.
-        BeaconNotification.beaconManager.addMonitorNotifier(this);
-
+    private void onDeviceDiscovered(RemoteBluetoothDevice device) {
+        devicesCount++;
+        //Send a broadcast with discovered device
+        Intent intent = new Intent();
+        intent.setAction(ACTION_DEVICE_DISCOVERED);
+        intent.putExtra(EXTRA_DEVICE, device);
+        intent.putExtra(EXTRA_DEVICES_COUNT, devicesCount);
+        sendBroadcast(intent);
     }
 
-    @Override
-    public void didEnterRegion(Region region) {
-        // Showing Notification that beacon is found
-        showNotification("Found Beacon in the range","For more info go the app");
-    }
-
-    @Override
-    public void didExitRegion(Region region) {
-        // Showing Notification that beacon is exited from region
-        showNotification("Founded Beacon Exited","For more info go the app");
-    }
-
-    @Override
-    public void didDetermineStateForRegion(int i, Region region) {
-
-    }
-    // Method for Showing Notifications
-    public void showNotification(String title, String message) {
-        Intent notifyIntent = new Intent(this, MainActivity.class);
-        notifyIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivities(this, 0,
-                new Intent[] { notifyIntent }, PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification notification = new Notification.Builder(this)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent)
-                .build();
-        notification.defaults |= Notification.DEFAULT_SOUND;
-        NotificationManager notificationManager =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(1, notification);
-    }
-    // Method to start Broadcasting to restart the service
-    // (BeaconBroadcast class)
-    public void startBroadcasting(){
-        Intent broadcastIntent = new Intent("com.example.anmol.beacons.RestartBeaconService");
-        sendBroadcast(broadcastIntent);
-    }
-
-    // Override onDestroy method
     @Override
     public void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        if (proximityManager != null) {
+            proximityManager.disconnect();
+            proximityManager = null;
+        }
+        Toast.makeText(BeaconService.this, "Scanning service stopped.", Toast.LENGTH_SHORT).show();
         super.onDestroy();
-        // if by chance service gets destroyed then start broadcasting to again start the service.
-        startBroadcasting();
-    }
-    @Override
-    public void onTaskRemoved(Intent rootIntent) {
-        super.onTaskRemoved(rootIntent);
-        Intent restartServiceIntent = new Intent(getApplicationContext(), this.getClass());
-        restartServiceIntent.setAction("");
-        PendingIntent restartServicePendingIntent = PendingIntent.getService(getApplicationContext(), 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT);
-        AlarmManager alarmService = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
-        alarmService.set(
-                AlarmManager.ELAPSED_REALTIME,
-                SystemClock.elapsedRealtime() + 1000,
-                restartServicePendingIntent);
     }
 }
