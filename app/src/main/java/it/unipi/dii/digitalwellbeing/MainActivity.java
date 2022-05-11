@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 
@@ -73,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     protected Interpreter tflite;
 
-    TreeMap<Long, List<Float>> toBeClassified = new TreeMap<>();
+    TreeMap<Long,Float[]> toBeClassified = new TreeMap<>();
     long timestamp;
 
     @Override
@@ -143,12 +144,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sm.registerListener (this, accelerometer, 10000000, 10000000);
-        sm.registerListener (this, gravity, 10000000, 10000000);
-        sm.registerListener (this, gyroscope, 10000000, 10000000);
-        sm.registerListener (this, rotation, 10000000, 10000000);
-        sm.registerListener (this, linear, 10000000, 10000000);
-        sm.registerListener (this, magnetometer, 10000000, 10000000);
+        sm.registerListener (this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener (this, gravity, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener (this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener (this, rotation, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener (this, linear, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener (this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener (this, proximity, SensorManager.SENSOR_DELAY_GAME);
 
         /*
         sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
@@ -193,84 +195,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         } else {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                if(toBeClassified.get(event.timestamp) == null) {
-                    List<Float>valuesList = new ArrayList<Float>() {
-                        {
-                            add(event.values[0]);
-                            add(event.values[1]);
-                            add(event.values[2]);
-                        }
-                    };
-                    if(toBeClassified.size() == 0 || toBeClassified.get(toBeClassified.lastKey()).size() == 12) {
-                        timestamp = event.timestamp;
-                        toBeClassified.put(event.timestamp, valuesList);
-                    } else {
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[0]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[1]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[2]);
-                    }
-                } else {
-                    toBeClassified.get(event.timestamp).add(event.values[0]);
-                    toBeClassified.get(event.timestamp).add(event.values[1]);
-                    toBeClassified.get(event.timestamp).add(event.values[2]);
-                }
-
-                if(toBeClassified.size() >= 5) {
-                    classifyFiftySamples();
-                }
+                addMapValues(event, 0, 1, 2);
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-                if(toBeClassified.get(event.timestamp) == null) {
-                    List<Float>valuesList = new ArrayList<Float>() {
-                        {
-                            add(event.values[0]);
-                            add(event.values[1]);
-                            add(event.values[2]);
-                        }
-                    };
-                    if(toBeClassified.size() == 0 || toBeClassified.get(toBeClassified.lastKey()).size() == 12) {
-                        timestamp = event.timestamp;
-                        toBeClassified.put(event.timestamp, valuesList);
-                    } else {
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[0]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[1]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[2]);
-                    }
-                } else {
-                    toBeClassified.get(event.timestamp).add(event.values[0]);
-                    toBeClassified.get(event.timestamp).add(event.values[1]);
-                    toBeClassified.get(event.timestamp).add(event.values[2]);
-                }
-
-                if(toBeClassified.size() >= 5) {
-                    classifyFiftySamples();
-                }
-
+                addMapValues(event, 3, 4, 5);
             } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
-                if(toBeClassified.get(event.timestamp) == null) {
-                    List<Float>valuesList = new ArrayList<Float>() {
-                        {
-                            add(event.values[0]);
-                            add(event.values[1]);
-                            add(event.values[2]);
-                        }
-                    };
-                    if(toBeClassified.size() == 0 || toBeClassified.get(toBeClassified.lastKey()).size() == 12) {
-                        timestamp = event.timestamp;
-                        toBeClassified.put(event.timestamp, valuesList);
-                    } else {
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[0]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[1]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[2]);
-                    }
-                } else {
-                    toBeClassified.get(event.timestamp).add(event.values[0]);
-                    toBeClassified.get(event.timestamp).add(event.values[1]);
-                    toBeClassified.get(event.timestamp).add(event.values[2]);
-                }
-
-                if(toBeClassified.size() >= 5) {
-                    classifyFiftySamples();
-                }
+                addMapValues(event, 6, 7, 8);
             } /*else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
                 SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
                 SensorManager.getOrientation(rotationMatrix, orientationAngles);
@@ -291,41 +220,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     toBeClassified.get(event.timestamp).add(event.values[2]);
                 }
 
-                if(toBeClassified.size() >= 50 && isToBeClassifiedComplete()) {
+                if(toBListeClassified.size() >= 50 && isToBeClassifiedComplete()) {
                     classifyFiftySamples();
                 }
             }*/ else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
-                if(toBeClassified.get(event.timestamp) == null) {
-                    List<Float>valuesList = new ArrayList<Float>() {
-                        {
-                            add(event.values[0]);
-                            add(event.values[1]);
-                            add(event.values[2]);
-                        }
-                    };
-                    if(toBeClassified.size() == 0 || toBeClassified.get(toBeClassified.lastKey()).size() == 12) {
-                        timestamp = event.timestamp;
-                        toBeClassified.put(event.timestamp, valuesList);
-                    } else {
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[0]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[1]);
-                        toBeClassified.get(toBeClassified.lastKey()).add(event.values[2]);
-                    }
-                } else {
-                    toBeClassified.get(event.timestamp).add(event.values[0]);
-                    toBeClassified.get(event.timestamp).add(event.values[1]);
-                    toBeClassified.get(event.timestamp).add(event.values[2]);
-                }
+                addMapValues(event, 9, 10, 11);
 
-                if(toBeClassified.size() >= 5) {
-                    classifyFiftySamples();
+                for(Map.Entry<Long, Float[]> entry : toBeClassified.entrySet()) {
+                    Log.d(TAG, entry.getKey() + ": " + Arrays.toString(entry.getValue()));
                 }
-
-                for(Map.Entry<Long, List<Float>> entry : toBeClassified.entrySet()) {
-                    Log.d(TAG, String.valueOf(entry.getKey()) + ": " + entry.getValue().toString());
-                }
-
-                Log.d(TAG, "_-_-_-_-__-_-_-_-__-_-_-_-__-_-_-_-__-_-_-_-__-_-_-_-__-_-_-_-__-_-_-_-_");
 
             } /*else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
                 if(toBeClassified.get(event.timestamp) == null) {
@@ -353,6 +256,73 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             }*/
         }
+    }
+
+    private void addMapValues(SensorEvent event, int i1, int i2, int i3) {
+        boolean ret = false;
+
+        // puó succedere che arrivino due valori di accelerometro consecutivi, si potrebbe fare quindi la media anziché scartare il valore
+        // la media sarebbe sempre tra due campioni non molto distanti tra loro, accettabile come approssimazione?
+
+        for(int i = i1; i <= i3 ; i++){
+            if(toBeClassified.size() != 0 && !isFull()) {
+                Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] = event.values[i % 3];
+                ret = true;
+            }
+        }
+
+        if(!ret) {
+            toBeClassified.put(event.timestamp, new Float[12]);
+
+            Objects.requireNonNull(toBeClassified.get(event.timestamp))[i1] = event.values[0];
+            Objects.requireNonNull(toBeClassified.get(event.timestamp))[i2] = event.values[1];
+            Objects.requireNonNull(toBeClassified.get(event.timestamp))[i3] = event.values[2];
+        }
+
+        // si puó prendere un campione ogni 10 (non abbiamo bisogno di tanti campioni per classificare)
+        // oppure si puó pensare di aggregare questi campioni in qualche modo (media?)
+        if(toBeClassified.size() >= 10) {
+            classifyFiftySamples();
+        }
+
+        /*
+            if(toBeClassified.get(event.timestamp) == null) {
+            List<Float>valuesList = new ArrayList<Float>() {
+                {
+                    add(event.values[0]);
+                    add(event.values[1]);
+                    add(event.values[2]);
+                }
+            };
+            if(toBeClassified.size() == 0 || toBeClassified.get(toBeClassified.lastKey()).size() == 12) {
+                timestamp = event.timestamp;
+                toBeClassified.put(event.timestamp, valuesList);
+            } else {
+                toBeClassified.get(toBeClassified.lastKey()).add(event.values[0]);
+                toBeClassified.get(toBeClassified.lastKey()).add(event.values[1]);
+                toBeClassified.get(toBeClassified.lastKey()).add(event.values[2]);
+            }
+        } else {
+            toBeClassified.get(event.timestamp).add(event.values[0]);
+            toBeClassified.get(event.timestamp).add(event.values[1]);
+            toBeClassified.get(event.timestamp).add(event.values[2]);
+        }
+
+        if(toBeClassified.size() >= 10) {
+            classifyFiftySamples();
+        }
+
+         */
+    }
+
+    private boolean isFull() {
+        for(int i = 0; i < Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey())).length; i++) {
+            if(Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] == null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void appendToCSV(String temp, FileWriter writer) {
@@ -407,18 +377,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         try {
             PickupClassifier model = PickupClassifier.newInstance(this);
-            for (Map.Entry<Long, List<Float>> entry : toBeClassified.entrySet()) {
-                List<Float> floatList = entry.getValue();
-                Log.d(TAG, "rowString length: " + (floatList != null ? floatList.size() : 0));
-                if(floatList.size() != 12) {
-                    continue;
-                }
+            for (Map.Entry<Long, Float[]> entry : toBeClassified.entrySet()) {
+                Log.d(TAG, "rowString length: " + (entry.getValue() != null ? entry.getValue().length : 0));
 
                 int[] shape = new int[]{1, 12};
                 TensorBuffer tensorBuffer = TensorBuffer.createFixedSize(shape, DataType.FLOAT32);
 
-                for (int i = 0; i < floatList.size(); i++) {
-                    data[i] = floatList.get(i);
+                for (int i = 0; i < entry.getValue().length; i++) {
+                    data[i] = entry.getValue()[i];
                 }
 
                 tensorBuffer.loadArray(data);
