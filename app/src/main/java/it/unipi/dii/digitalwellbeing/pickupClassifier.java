@@ -55,19 +55,21 @@ public class pickupClassifier {
                 TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
                 data = outputFeature0.getFloatArray();
 
+                /*
                 TextView tv = findViewById(R.id.activity);
                 TextView tv2 = findViewById(R.id.counter);
+                 */
 
-                tv.setText(outputFeature0.getDataType().toString());
+                // tv.setText(outputFeature0.getDataType().toString());
                 if (data[0] <= 0.5) {
-                    tv.setText("Picking up phone!");
-                    CharSequence counter = tv2.getText();
-                    int count = Integer.parseInt(counter.toString());
-                    count += 1;
-                    tv2.setText(String.valueOf(count));
+                    // tv.setText("Picking up phone!");
+                    // CharSequence counter = tv2.getText();
+                    // int count = Integer.parseInt(counter.toString());
+                    // count += 1;
+                    // tv2.setText(String.valueOf(count));
                     already_recognized = true;
                 } else {
-                    tv.setText("Other activities");
+                    // tv.setText("Other activities");
                 }
 
                 Log.d(TAG, "predictActivities: output array: " + Arrays.toString(outputFeature0.getFloatArray()));
