@@ -23,14 +23,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-
 
 import it.unipi.dii.digitalwellbeing.ml.PickupClassifier;
 
@@ -76,6 +72,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     TreeMap<Long,Float[]> toBeClassified = new TreeMap<>();
     long timestamp;
+    boolean already_recognized = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -201,28 +198,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
                 addMapValues(event, 6, 7, 8);
             } /*else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
-                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
-                SensorManager.getOrientation(rotationMatrix, orientationAngles);
-
-                if(toBeClassified.get(event.timestamp) == null) {
-                    List<Float>valuesList = new ArrayList<Float>() {
-                        {
-                            add((float) Math.toDegrees(orientationAngles[0]));
-                            add((float) Math.toDegrees(orientationAngles[1]));
-                            add((float) Math.toDegrees(orientationAngles[2]));
-                        }
-                    };
-                    timestamp = event.timestamp;
-                    toBeClassified.put(event.timestamp, valuesList);
-                } else {
-                    toBeClassified.get(event.timestamp).add(event.values[0]);
-                    toBeClassified.get(event.timestamp).add(event.values[1]);
-                    toBeClassified.get(event.timestamp).add(event.values[2]);
-                }
-
-                if(toBListeClassified.size() >= 50 && isToBeClassifiedComplete()) {
-                    classifyFiftySamples();
-                }
+                addMapValues(event, 9, 10, 11);
             }*/ else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
                 addMapValues(event, 9, 10, 11);
 
@@ -231,30 +207,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
 
             } /*else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-                if(toBeClassified.get(event.timestamp) == null) {
-                    List<Float>valuesList = new ArrayList<Float>() {
-                        {
-                            add(event.values[0]);
-                            add(event.values[1]);
-                            add(event.values[2]);
-                        }
-                    };
-                    timestamp = event.timestamp;
-                    toBeClassified.put(event.timestamp, valuesList);
-                } else {
-                    toBeClassified.get(event.timestamp).add(event.values[0]);
-                    toBeClassified.get(event.timestamp).add(event.values[1]);
-                    toBeClassified.get(event.timestamp).add(event.values[2]);
+                addMapValues(event, 12, 13, 14);
+            }*/ else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
+                Log.d(TAG, "Proximity: " + event.values[0]);
+                if(event.values[0] == 0.0 /*&& checkRangePocket()*/) {
+                    already_recognized = false;
                 }
-
-                for(Map.Entry<Long, List<Float>> entry : toBeClassified.entrySet()) {
-                    Log.d(TAG, String.valueOf(entry.getKey()) + ": " + entry.getValue().toString());
-                }
-
-                if(toBeClassified.size() >= 50 && isToBeClassifiedComplete()) {
-                    classifyFiftySamples();
-                }
-            }*/
+            }
         }
     }
 
@@ -266,7 +225,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         for(int i = i1; i <= i3 ; i++){
             if(toBeClassified.size() != 0 && !isFull()) {
-                Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] = event.values[i % 3];
+
+                if(Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] != null) {
+                    Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] =
+                            (Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] + event.values[i % 3]) / 2;
+                    Log.d(TAG, "Campione duplicato faccio la MEDIA");
+                } else {
+                    Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] = event.values[i % 3];
+                }
+
                 ret = true;
             }
         }
@@ -281,8 +248,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // si puó prendere un campione ogni 10 (non abbiamo bisogno di tanti campioni per classificare)
         // oppure si puó pensare di aggregare questi campioni in qualche modo (media?)
-        if(toBeClassified.size() >= 10) {
-            classifyFiftySamples();
+        if(toBeClassified.size() >= 40) {
+            classifySamples();
         }
 
         /*
@@ -370,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
-    private void classifyFiftySamples() {
+    private void classifySamples() {
         // classify the samples
         TensorBuffer inputFeature0 = null;
         float[] data = new float[12];
@@ -400,10 +367,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 // Releases model resources if no longer used.
                 TextView tv = findViewById(R.id.activity);
+                TextView tv2 = findViewById(R.id.counter);
 
                 tv.setText(outputFeature0.getDataType().toString());
                 if (data[0] <= 0.5) {
                     tv.setText("Picking up phone!");
+                    CharSequence counter = tv2.getText();
+                    int count = Integer.parseInt(counter.toString());
+                    count += 1;
+                    tv2.setText(String.valueOf(count));
+                    already_recognized = true;
                 } else {
                     tv.setText("Other activities");
                 }
