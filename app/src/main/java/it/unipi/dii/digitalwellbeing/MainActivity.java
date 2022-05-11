@@ -202,7 +202,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void startBeacon(View view){
         checkPermissions();
-        startService(new Intent(this, BeaconService.class));
+        Toast.makeText(this, "Service is starting.", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(getApplicationContext(), BeaconService.class);
+
+        startService(intent);
     }
 
 

@@ -49,15 +49,14 @@ public class BeaconService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        //setupProximityManager();
+        setupProximityManager();
         Toast.makeText(this, "Service is running.", Toast.LENGTH_SHORT).show();
         isRunning = false;
-        Log.i("BeaconService:", "OnCreate");
     }
 
     private void setupProximityManager() {
         //Create proximity manager instance
-        proximityManager = ProximityManagerFactory.create(this);
+        proximityManager = ProximityManagerFactory.create(getApplicationContext());
 
         //Configure proximity manager basic options
         proximityManager.configuration()
@@ -74,11 +73,12 @@ public class BeaconService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         //Check if service is already active
         Toast.makeText(this, "Service is running.", Toast.LENGTH_SHORT).show();
+        Log.i("BeaconService:","Dentro il servizio");
         if (isRunning) {
             Toast.makeText(this, "Service is already running.", Toast.LENGTH_SHORT).show();
             return START_STICKY;
         }
-        //startScanning();
+        startScanning();
         isRunning = true;
         return START_STICKY;
     }
@@ -122,6 +122,7 @@ public class BeaconService extends Service {
 
 
     private void onDeviceDiscovered(RemoteBluetoothDevice device) {
+        Toast.makeText(BeaconService.this, "Beacon detected", Toast.LENGTH_SHORT).show();
         devicesCount++;
         //Send a broadcast with discovered device
         Intent intent = new Intent();
