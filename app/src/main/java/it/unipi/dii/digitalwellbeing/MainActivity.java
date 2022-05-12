@@ -24,6 +24,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -202,9 +204,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }*/ else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
                 addMapValues(event, 9, 10, 11);
 
+                /*
+
                 for(Map.Entry<Long, Float[]> entry : toBeClassified.entrySet()) {
                     Log.d(TAG, entry.getKey() + ": " + Arrays.toString(entry.getValue()));
                 }
+
+                 */
 
             } /*else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
                 addMapValues(event, 12, 13, 14);
@@ -249,7 +255,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // si puó prendere un campione ogni 10 (non abbiamo bisogno di tanti campioni per classificare)
         // oppure si puó pensare di aggregare questi campioni in qualche modo (media?)
         if(toBeClassified.size() >= 40) {
-            classifySamples();
+            long last_timestamp = toBeClassified.lastKey();
+            Collection<Float[]> values = toBeClassified.values();
+            Float[] toClassify = new Float[12];
+
+            for(int i = 0; i < 12; i++) {
+                for (Iterator<Float[]> it = values.iterator(); it.hasNext(); ) {
+                    Float[] value = it.next();
+
+                }
+            }
+
+
+            classifySamples(toClassify);
+
         }
 
         /*
@@ -337,7 +356,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
-    private void classifySamples() {
+    private void classifySamples(Float[] toClassify) {
         // classify the samples
         TensorBuffer inputFeature0 = null;
         float[] data = new float[12];
