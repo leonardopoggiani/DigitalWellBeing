@@ -41,7 +41,6 @@ public class ActivityClassifier {
                 if(Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] != null) {
                     Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] =
                             (Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] + event.values[i % 3]) / 2;
-                    Log.d(TAG, "Campione duplicato faccio la MEDIA");
                 } else {
                     Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] = event.values[i % 3];
                 }
@@ -110,8 +109,6 @@ public class ActivityClassifier {
         try {
             PickupClassifier model = PickupClassifier.newInstance(ctx);
             for (Map.Entry<Long, Float[]> entry : toBeClassified.entrySet()) {
-                Log.d(TAG, "rowString length: " + (entry.getValue() != null ? entry.getValue().length : 0));
-
                 int[] shape = new int[]{1, 18};
                 TensorBuffer tensorBuffer = TensorBuffer.createFixedSize(shape, DataType.FLOAT32);
 
@@ -158,7 +155,6 @@ public class ActivityClassifier {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
 }
