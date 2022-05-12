@@ -371,7 +371,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             model.close();
 
         } catch (IOException e) {
-            // TODO Handle the exception
+            e.printStackTrace();
         }
 
     }
