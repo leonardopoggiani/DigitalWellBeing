@@ -195,6 +195,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
                 addMapValues(event, 12, 13, 14);
             } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+                SensorManager.getOrientation(rotationMatrix, orientationAngles);
+
+                event.values[0] = (float) Math.toDegrees(orientationAngles[0]);
+                event.values[1] = (float) Math.toDegrees(orientationAngles[1]);
+                event.values[2] = (float) Math.toDegrees(orientationAngles[2]);
+
                 addMapValues(event, 15, 16, 17);
             } else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
                 Log.d(TAG, "Proximity: " + event.values[0]);
