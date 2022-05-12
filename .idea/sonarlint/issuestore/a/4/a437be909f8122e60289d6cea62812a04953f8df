@@ -1,0 +1,22 @@
+
+r	java:S117?"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(Øüöøÿÿÿÿ8õŒ½È‹0
+r	java:S116"]Rename this field "already_recognized" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(œüùÆ
+o
+java:S3776 "RRefactor this method to reduce its Cognitive Complexity from 27 to the 15 allowed.(ßÊ³8½È‹0
+d
+java:S1854?"BRemove this useless assignment to local variable "last_timestamp".(Øüöøÿÿÿÿ8½È‹0
+U
+java:S1481?"3Remove this unused "last_timestamp" local variable.(Øüöøÿÿÿÿ8¤½È‹0
+G
+java:S1481o"*Remove this unused "entry" local variable.(¡ğ¥ö8ÉŸÊ‹0
+{
+java:S3012t"YUse "Arrays.copyOf", "Arrays.asList", "Collections.addAll" or "System.arraycopy" instead.(ÏÈ‹…úÿÿÿÿ8Å‘¾È‹0
+Y	java:S125…"<This block of commented-out lines of code should be removed.(ğ‹²8 á¿È‹0
+^	java:S125Š"<This block of commented-out lines of code should be removed.(È–ØÙûÿÿÿÿ8²§ÂÈ‹0
+^	java:S125‘"<This block of commented-out lines of code should be removed.(¯ïÀñûÿÿÿÿ8æÒÁÈ‹0
+S
+java:S1751•"5Remove this "break" statement or make it conditional.(›ûä·8Ë‘¾È‹0
+V
+java:S1128"4Remove this unused import 'android.widget.TextView'.(„Ë‚ˆÿÿÿÿÿ8³§ÂÈ‹0
+N
+java:S1144 "1Remove this unused private "addMapValues" method.(ßÊ³8¦½È‹0
