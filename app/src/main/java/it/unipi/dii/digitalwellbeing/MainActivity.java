@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     TreeMap<Long,Float[]> toBeClassified = new TreeMap<>();
     long timestamp;
-    boolean already_recognized = false;
+    boolean already_recognized = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,13 +143,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sm.registerListener (this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
-        sm.registerListener (this, gravity, SensorManager.SENSOR_DELAY_FASTEST);
-        sm.registerListener (this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
-        sm.registerListener (this, rotation, SensorManager.SENSOR_DELAY_FASTEST);
-        sm.registerListener (this, linear, SensorManager.SENSOR_DELAY_FASTEST);
-        sm.registerListener (this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
-        sm.registerListener (this, proximity, SensorManager.SENSOR_DELAY_FASTEST);
+        sm.registerListener (this, accelerometer, 33330);
+        sm.registerListener (this, gravity, 33330);
+        sm.registerListener (this, gyroscope, 33330);
+        sm.registerListener (this, rotation, 33330);
+        sm.registerListener (this, linear, 33330);
+        sm.registerListener (this, magnetometer, 33330);
+        sm.registerListener (this, proximity, 33330);
     }
 
     @Override
@@ -183,7 +183,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
                 appendToCSV(temp, writerMag);
             }
-        } /*else {
+        } else {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 addMapValues(event, 0, 1, 2);
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
@@ -202,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     already_recognized = false;
                 }
             }
-        }*/
+        }
     }
 
     private void addMapValues(SensorEvent event, int i1, int i2, int i3) {
@@ -217,7 +217,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if(Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] != null) {
                     Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] =
                             (Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] + event.values[i % 3]) / 2;
-                    Log.d(TAG, "Campione duplicato faccio la MEDIA");
                 } else {
                     Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] = event.values[i % 3];
                 }
@@ -236,7 +235,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // si puó prendere un campione ogni 10 (non abbiamo bisogno di tanti campioni per classificare)
         // oppure si puó pensare di aggregare questi campioni in qualche modo (media?)
-        if(toBeClassified.size() >= 100) {
+        if(toBeClassified.size() >= 50) {
             long last_timestamp = toBeClassified.lastKey();
             Collection<Float[]> values = toBeClassified.values();
             Float[] toClassify = new Float[18];
@@ -304,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 activity_tag = "OTHER";
             }
 
-            monitoring = true;
+            // monitoring = true;
             Button start_button = (Button) findViewById(R.id.start);
             start_button.setText("STOP");
         } else {
@@ -352,11 +351,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 TextView tv2 = findViewById(R.id.counter);
 
                 tv.setText(outputFeature0.getDataType().toString());
-                if (data[0] <= 0.5) {
+                if (data[0] > 0.5) {
+
                     tv.setText("Picking up phone!");
                     CharSequence counter = tv2.getText();
                     int count = Integer.parseInt(counter.toString());
-                    count += 1;
+
+                    if(!already_recognized)
+                        count += 1;
+
                     tv2.setText(String.valueOf(count));
                     already_recognized = true;
                 } else {
