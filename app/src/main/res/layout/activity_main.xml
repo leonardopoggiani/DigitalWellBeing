@@ -32,12 +32,6 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <RadioButton
-            android:id="@+id/putdown"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/put_the_phone_in_the_pocket" />
-
-        <RadioButton
             android:id="@+id/pickup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

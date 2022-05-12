@@ -143,22 +143,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sm.registerListener (this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener (this, gravity, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener (this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener (this, rotation, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener (this, linear, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener (this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener (this, proximity, SensorManager.SENSOR_DELAY_GAME);
-
-        /*
-        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener(this, gravity, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener(this, rotation, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener(this, linear, SensorManager.SENSOR_DELAY_GAME);
-        sm.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
-         */
+        sm.registerListener (this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        sm.registerListener (this, gravity, SensorManager.SENSOR_DELAY_FASTEST);
+        sm.registerListener (this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+        sm.registerListener (this, rotation, SensorManager.SENSOR_DELAY_FASTEST);
+        sm.registerListener (this, linear, SensorManager.SENSOR_DELAY_FASTEST);
+        sm.registerListener (this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
+        sm.registerListener (this, proximity, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     @Override
@@ -192,35 +183,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
                 appendToCSV(temp, writerMag);
             }
-        } else {
+        } /*else {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 addMapValues(event, 0, 1, 2);
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
                 addMapValues(event, 3, 4, 5);
             } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
                 addMapValues(event, 6, 7, 8);
-            } /*else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+            } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
                 addMapValues(event, 9, 10, 11);
-            }*/ else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
-                addMapValues(event, 9, 10, 11);
-
-                /*
-
-                for(Map.Entry<Long, Float[]> entry : toBeClassified.entrySet()) {
-                    Log.d(TAG, entry.getKey() + ": " + Arrays.toString(entry.getValue()));
-                }
-
-                 */
-
-            } /*else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
                 addMapValues(event, 12, 13, 14);
-            }*/ else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
+            } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+                addMapValues(event, 15, 16, 17);
+            } else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
                 Log.d(TAG, "Proximity: " + event.values[0]);
-                if(event.values[0] == 0.0 /*&& checkRangePocket()*/) {
+                if(event.values[0] == 0.0 && checkRangePocket(event)) {
                     already_recognized = false;
                 }
             }
-        }
+        }*/
     }
 
     private void addMapValues(SensorEvent event, int i1, int i2, int i3) {
@@ -245,7 +227,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         if(!ret) {
-            toBeClassified.put(event.timestamp, new Float[12]);
+            toBeClassified.put(event.timestamp, new Float[18]);
 
             Objects.requireNonNull(toBeClassified.get(event.timestamp))[i1] = event.values[0];
             Objects.requireNonNull(toBeClassified.get(event.timestamp))[i2] = event.values[1];
@@ -254,51 +236,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // si puó prendere un campione ogni 10 (non abbiamo bisogno di tanti campioni per classificare)
         // oppure si puó pensare di aggregare questi campioni in qualche modo (media?)
-        if(toBeClassified.size() >= 40) {
+        if(toBeClassified.size() >= 100) {
             long last_timestamp = toBeClassified.lastKey();
             Collection<Float[]> values = toBeClassified.values();
-            Float[] toClassify = new Float[12];
+            Float[] toClassify = new Float[18];
+            int[] count = new int[18];
 
-            for(int i = 0; i < 12; i++) {
+            for(int i = 0; i < 18; i++) {
                 for (Iterator<Float[]> it = values.iterator(); it.hasNext(); ) {
                     Float[] value = it.next();
+                    if(value[i] == null) {
+                        continue;
+                    } else {
+                        count[i]++;
+                    }
 
+                    if(toClassify[i] == null) {
+                        toClassify[i] = value[i];
+                    } else {
+                        toClassify[i] = (toClassify[i] + value[i]);
+                    }
                 }
             }
 
+            for(int i = 0; i < 18; i++) {
+                toClassify[i] = toClassify[i] / count[i];
+            }
 
             classifySamples(toClassify);
 
         }
-
-        /*
-            if(toBeClassified.get(event.timestamp) == null) {
-            List<Float>valuesList = new ArrayList<Float>() {
-                {
-                    add(event.values[0]);
-                    add(event.values[1]);
-                    add(event.values[2]);
-                }
-            };
-            if(toBeClassified.size() == 0 || toBeClassified.get(toBeClassified.lastKey()).size() == 12) {
-                timestamp = event.timestamp;
-                toBeClassified.put(event.timestamp, valuesList);
-            } else {
-                toBeClassified.get(toBeClassified.lastKey()).add(event.values[0]);
-                toBeClassified.get(toBeClassified.lastKey()).add(event.values[1]);
-                toBeClassified.get(toBeClassified.lastKey()).add(event.values[2]);
-            }
-        } else {
-            toBeClassified.get(event.timestamp).add(event.values[0]);
-            toBeClassified.get(event.timestamp).add(event.values[1]);
-            toBeClassified.get(event.timestamp).add(event.values[2]);
-        }
-
-        if(toBeClassified.size() >= 10) {
-            classifyFiftySamples();
-        }
-
-         */
     }
 
     private boolean isFull() {
@@ -327,27 +294,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void startMonitoring(View view) throws CsvValidationException, IOException {
 
-        RadioButton putdown = (RadioButton) findViewById(R.id.putdown);
         RadioButton pickup = (RadioButton) findViewById(R.id.pickup);
         RadioButton other = (RadioButton) findViewById(R.id.other);
 
         if(!monitoring) {
-            if (putdown.isChecked()) {
-                activity_tag = "PUTDOWN";
-            } else if (pickup.isChecked()) {
+            if (pickup.isChecked()) {
                 activity_tag = "PICKUP";
             } else if (other.isChecked()) {
                 activity_tag = "OTHER";
             }
 
-            // monitoring = true;
+            monitoring = true;
             Button start_button = (Button) findViewById(R.id.start);
             start_button.setText("STOP");
         } else {
             Button stop_button = (Button)findViewById(R.id.start);
             stop_button.setText("START");
 
-            putdown.setChecked(false);
             pickup.setChecked(false);
             other.setChecked(false);
 
@@ -359,23 +322,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void classifySamples(Float[] toClassify) {
         // classify the samples
         TensorBuffer inputFeature0 = null;
-        float[] data = new float[12];
+        float[] data = new float[18];
 
         try {
             PickupClassifier model = PickupClassifier.newInstance(this);
             for (Map.Entry<Long, Float[]> entry : toBeClassified.entrySet()) {
                 Log.d(TAG, "rowString length: " + (entry.getValue() != null ? entry.getValue().length : 0));
 
-                int[] shape = new int[]{1, 12};
+                int[] shape = new int[]{1, 18};
                 TensorBuffer tensorBuffer = TensorBuffer.createFixedSize(shape, DataType.FLOAT32);
 
-                for (int i = 0; i < entry.getValue().length; i++) {
-                    data[i] = entry.getValue()[i];
+                for (int i = 0; i < toClassify.length; i++) {
+                    data[i] = toClassify[i];
                 }
 
                 tensorBuffer.loadArray(data);
 
-                inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 12, 1}, DataType.FLOAT32);
+                inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 18, 1}, DataType.FLOAT32);
                 ByteBuffer byteBuffer = tensorBuffer.getBuffer();
                 inputFeature0.loadBuffer(byteBuffer);
 
