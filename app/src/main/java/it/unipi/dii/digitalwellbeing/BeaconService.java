@@ -120,7 +120,7 @@ public class BeaconService extends Service {
         }, TIMEOUT);
     }
 
-
+    /*
     private void saveAsCSV (String device, String region, int devicesCount) throws IOException {
         String data = ""+device+","+region+","+String.valueOf(devicesCount)+"";
         Toast.makeText(this, "Computing CSV.", Toast.LENGTH_SHORT).show();
@@ -147,8 +147,8 @@ public class BeaconService extends Service {
         csvWriter.append("\n");
 
         csvWriter.flush();
-        csvWriter.close();*/
-    }
+        csvWriter.close();
+    }*/
 
     private IBeaconListener createIBeaconListener() {
         return new SimpleIBeaconListener() {
@@ -166,11 +166,11 @@ public class BeaconService extends Service {
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void onDeviceDiscovered(RemoteBluetoothDevice device, IBeaconRegion region) {
         devicesCount++;
-        try {
+        /*try {
             saveAsCSV(device.toString(), region.toString(), devicesCount);
         } catch (IOException e) {
             Log.i("BeaconService", "Exception on CSV writing");
-        }
+        }*/
         //Send a broadcast with discovered device
         Intent intent = new Intent();
         intent.setAction(ACTION_DEVICE_DISCOVERED);
