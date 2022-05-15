@@ -83,8 +83,8 @@ public class BeaconForegroundService extends Service {
         beacon_list = new ArrayList<>();
         setupProximityManager();
         isRunning = false;
-        /*device = getPhoneName();
-        if(device.equals("Error")){
+        device = android.os.Build.MODEL;
+        /*if(device.equals("Error")){
             onDestroy();
         }*/
     }
@@ -270,7 +270,7 @@ public class BeaconForegroundService extends Service {
         beacon.setProximity(device.getProximity());
         beacon.setRssi(device.getRssi());
         beacon.setTimestamp(device.getTimestamp());
-        //beacon.setUserDevice(this.device);
+        beacon.setUserDevice(this.device);
         new HandleFirebase().insert(db, beacon, getApplicationContext());
         //Send a broadcast with discovered device
         Intent intent = new Intent();
