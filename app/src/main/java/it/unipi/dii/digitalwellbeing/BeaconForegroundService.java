@@ -1,12 +1,15 @@
 package it.unipi.dii.digitalwellbeing;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -14,6 +17,7 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
 import com.google.firebase.database.DataSnapshot;
@@ -56,6 +60,16 @@ public class BeaconForegroundService extends Service {
     private Notification notificationForeground;
     private DatabaseReference db;
     List<RemoteBluetoothDevice> beacon_list;
+    private String device;
+
+    public String getPhoneName() {
+        BluetoothAdapter myDevice = BluetoothAdapter.getDefaultAdapter();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return "Error";
+        }
+        String deviceName = myDevice.getName();
+        return deviceName;
+    }
 
     public static Intent createIntent(final Context context) {
         return new Intent(context, BeaconForegroundService.class);
@@ -69,6 +83,10 @@ public class BeaconForegroundService extends Service {
         beacon_list = new ArrayList<>();
         setupProximityManager();
         isRunning = false;
+        /*device = getPhoneName();
+        if(device.equals("Error")){
+            onDestroy();
+        }*/
     }
 
     private void setupProximityManager() {
@@ -105,7 +123,7 @@ public class BeaconForegroundService extends Service {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 beacon_list.clear();
                 for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
-                    RemoteBluetoothDevice updated = postSnapshot.getValue(RemoteBluetoothDevice.class);
+                    RemoteBluetoothDevice updated = postSnapshot.child("").getValue(RemoteBluetoothDevice.class);
                     // if case to check the RSSI (must be implemented!!)
                     beacon_list.add(updated);
                 }
@@ -245,7 +263,15 @@ public class BeaconForegroundService extends Service {
     }
 
     private void onDeviceDiscovered(final RemoteBluetoothDevice device) {
-        new HandleFirebase().insert(db, device, getApplicationContext());
+        Beacon beacon = new Beacon();
+        beacon.setAddress(device.getAddress());
+        beacon.setDistance(device.getDistance());
+        beacon.setId(device.getUniqueId());
+        beacon.setProximity(device.getProximity());
+        beacon.setRssi(device.getRssi());
+        beacon.setTimestamp(device.getTimestamp());
+        //beacon.setUserDevice(this.device);
+        new HandleFirebase().insert(db, beacon, getApplicationContext());
         //Send a broadcast with discovered device
         Intent intent = new Intent();
         intent.setAction(ACTION_DEVICE_DISCOVERED);

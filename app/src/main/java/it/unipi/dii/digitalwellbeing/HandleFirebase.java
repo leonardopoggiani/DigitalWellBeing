@@ -15,11 +15,11 @@ import it.unipi.dii.digitalwellbeing.MainActivity;
 
 public class HandleFirebase {
 
-    public void insert (DatabaseReference db, RemoteBluetoothDevice beacon, Context context){
+    public void insert (DatabaseReference db, Beacon beacon, Context context){
         //create an unique id
-        String id = db.push().getKey();
+        //String id = db.push().getKey();
         //Saving the beacon object
-        db.child(id).setValue(beacon);
+        db.setValue(beacon);
         //displaying a success toast
         Toast.makeText(context, "Insert firebase", Toast.LENGTH_LONG).show();
 
