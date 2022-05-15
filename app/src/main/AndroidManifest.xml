@@ -27,6 +27,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DigitalWellBeing">
         <service android:name="it.unipi.dii.digitalwellbeing.BeaconService"></service>
+        <service android:name="it.unipi.dii.digitalwellbeing.BeaconForegroundService"></service>
         <service
             android:name="com.kontakt.sdk.android.ble.service.ProximityService"
             android:exported="false" />
