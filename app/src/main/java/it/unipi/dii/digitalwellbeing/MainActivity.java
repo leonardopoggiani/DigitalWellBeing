@@ -7,8 +7,10 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Sensor;
@@ -22,6 +24,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.kontakt.sdk.android.common.profile.RemoteBluetoothDevice;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -56,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
 
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Utils.toast(getApplicationContext(), "BLE not supported");
+            Toast.makeText(getApplicationContext(), "BLE not supported", Toast.LENGTH_SHORT).show();
             finish();
         }
 
@@ -86,10 +90,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onResume();
         sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_NORMAL);
+        IntentFilter intentFilter = new IntentFilter(BeaconForegroundService.ACTION_DEVICE_DISCOVERED);
+        registerReceiver(scanningBroadcastReceiver, intentFilter);
     }
 
     @Override
     protected void onPause() {
+        unregisterReceiver(scanningBroadcastReceiver);
         super.onPause();
         sm.unregisterListener(this);
     }
@@ -319,5 +326,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Toast.makeText(this, "Location permissions are mandatory to use BLE features on Android 6.0 or higher", Toast.LENGTH_LONG).show();
         }
     }
+
+    private final BroadcastReceiver scanningBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Device discovered!
+            //int devicesCount = intent.getIntExtra(BackgroundScanService.EXTRA_DEVICES_COUNT, 0);
+            //RemoteBluetoothDevice device = intent.getParcelableExtra(BackgroundScanService.EXTRA_DEVICE);
+            //statusText.setText(String.format("Total discovered devices: %d\n\nLast scanned device:\n%s", devicesCount, device.toString()));
+            Toast.makeText(context, "Beacon detected", Toast.LENGTH_LONG).show();
+        }
+    };
 
 }

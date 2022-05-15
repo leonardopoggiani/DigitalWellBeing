@@ -120,35 +120,6 @@ public class BeaconService extends Service {
         }, TIMEOUT);
     }
 
-    /*
-    private void saveAsCSV (String device, String region, int devicesCount) throws IOException {
-        String data = ""+device+","+region+","+String.valueOf(devicesCount)+"";
-        Toast.makeText(this, "Computing CSV.", Toast.LENGTH_SHORT).show();
-        //String csv = "beacon.csv";
-        Writer output;
-        output = new BufferedWriter(new FileWriter("beacon.txt", true));
-        output.append(data);
-        output.close();
-        /*CSVWriter writer = new CSVWriter(new FileWriter(csv, true));
-
-        String [] record =data.split(",");
-        Log.d("BeaconService", data);
-        writer.writeNext(record);
-
-        writer.close();
-        /*FileWriter csvWriter = new FileWriter("beacon.csv", true);
-        csvWriter.append(device);
-        csvWriter.append(",");
-        csvWriter.append(region);
-        csvWriter.append(",");
-        csvWriter.append(String.valueOf(devicesCount));
-        csvWriter.append(",");
-        csvWriter.append(LocalDateTime.now().toString());
-        csvWriter.append("\n");
-
-        csvWriter.flush();
-        csvWriter.close();
-    }*/
 
     private IBeaconListener createIBeaconListener() {
         return new SimpleIBeaconListener() {

@@ -16,6 +16,11 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.kontakt.sdk.android.ble.configuration.ScanMode;
 import com.kontakt.sdk.android.ble.configuration.ScanPeriod;
 import com.kontakt.sdk.android.ble.connection.OnServiceReadyListener;
@@ -26,6 +31,9 @@ import com.kontakt.sdk.android.ble.manager.listeners.simple.SimpleIBeaconListene
 import com.kontakt.sdk.android.common.profile.IBeaconDevice;
 import com.kontakt.sdk.android.common.profile.IBeaconRegion;
 import com.kontakt.sdk.android.common.profile.RemoteBluetoothDevice;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class BeaconForegroundService extends Service {
 
@@ -46,6 +54,8 @@ public class BeaconForegroundService extends Service {
     private NotificationChannel channel;
     private NotificationManager notificationManager;
     private Notification notificationForeground;
+    private DatabaseReference db;
+    List<RemoteBluetoothDevice> beacon_list;
 
     public static Intent createIntent(final Context context) {
         return new Intent(context, BeaconForegroundService.class);
@@ -53,8 +63,10 @@ public class BeaconForegroundService extends Service {
 
     @Override
     public void onCreate() {
-        Toast.makeText(this, "Foreground.", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "Foreground.", Toast.LENGTH_SHORT).show();
         super.onCreate();
+        db  = FirebaseDatabase.getInstance("https://digitalwellbeing-83177-default-rtdb.europe-west1.firebasedatabase.app/").getReference();;
+        beacon_list = new ArrayList<>();
         setupProximityManager();
         isRunning = false;
     }
@@ -86,6 +98,50 @@ public class BeaconForegroundService extends Service {
             Toast.makeText(this, "Service is already running.", Toast.LENGTH_SHORT).show();
             return START_STICKY;
         }
+
+
+        /*db.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                beacon_list.clear();
+                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+                    RemoteBluetoothDevice updated = postSnapshot.getValue(RemoteBluetoothDevice.class);
+                    // if case to check the RSSI (must be implemented!!)
+                    beacon_list.add(updated);
+                }
+                int userDetected = beacon_list.size();
+
+                // Create notification channel
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    createNotificationChannel();
+                }
+
+                // Build notification
+                Intent notificationIntent = new Intent(getApplicationContext(), MainActivity.class);
+
+                notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+                PendingIntent intent = PendingIntent.getActivity(getApplicationContext(), 0,
+                        notificationIntent, 0);
+                //final NotificationCompat.Action action = new NotificationCompat.Action(0, "Stop", stopIntent);
+                notificationForeground = new NotificationCompat.Builder(BeaconForegroundService.this, NOTIFICATION_CHANEL_ID)
+                        .setContentTitle("Devices detected")
+                        .setContentText(userDetected+"devices detected in your zone")
+                        .setSmallIcon(android.R.mipmap.sym_def_app_icon)
+                        .setContentIntent(intent)
+                        .setAutoCancel(true)
+                        .build();
+
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Getting Post failed, log a message
+                Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
+            }
+        });*/
 
         startInForeground();
         startScanning();
@@ -189,18 +245,10 @@ public class BeaconForegroundService extends Service {
     }
 
     private void onDeviceDiscovered(final RemoteBluetoothDevice device) {
-        devicesCount++;
-        //Notification
-        final Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANEL_ID)
-                .setContentTitle("Beacon detetected")
-                .setContentText("IBeacon discovered \n" + device.toString())
-                .setSmallIcon(android.R.mipmap.sym_def_app_icon)
-                .build();
+        new HandleFirebase().insert(db, device, getApplicationContext());
         //Send a broadcast with discovered device
         Intent intent = new Intent();
         intent.setAction(ACTION_DEVICE_DISCOVERED);
-        intent.putExtra(EXTRA_DEVICE, device);
-        intent.putExtra(EXTRA_DEVICES_COUNT, devicesCount);
         sendBroadcast(intent);
     }
 
