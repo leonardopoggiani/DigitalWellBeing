@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "184476833236",
+    "project_id": "digitalwellbeing-83177",
+    "storage_bucket": "digitalwellbeing-83177.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:184476833236:android:6ce402f2b193b0e3d1f241",
+        "android_client_info": {
+          "package_name": "it.unipi.dii.digitalwellbeing"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "184476833236-8f0rnjl8erev0kn3289p8ipetahojv91.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZpx1jYZLptF1wfUoEGvUCVLyq1GTkQCg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "184476833236-8f0rnjl8erev0kn3289p8ipetahojv91.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
