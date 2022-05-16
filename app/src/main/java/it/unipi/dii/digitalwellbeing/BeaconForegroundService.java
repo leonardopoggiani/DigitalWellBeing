@@ -59,7 +59,7 @@ public class BeaconForegroundService extends Service {
     private NotificationManager notificationManager;
     private Notification notificationForeground;
     private DatabaseReference db;
-    List<RemoteBluetoothDevice> beacon_list;
+    List<Beacon> beacon_list;
     private String device;
 
     public String getPhoneName() {
@@ -118,17 +118,18 @@ public class BeaconForegroundService extends Service {
         }
 
 
-        /*db.addValueEventListener(new ValueEventListener() {
+        db.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                Toast.makeText(getApplicationContext(), "Qualcuno ha scritto nel db", Toast.LENGTH_SHORT).show();
                 beacon_list.clear();
                 for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
-                    RemoteBluetoothDevice updated = postSnapshot.child("").getValue(RemoteBluetoothDevice.class);
+                    Beacon updated = postSnapshot.child("").getValue(Beacon.class);
                     // if case to check the RSSI (must be implemented!!)
                     beacon_list.add(updated);
                 }
                 int userDetected = beacon_list.size();
-
+                Toast.makeText(getApplicationContext(), "User detected:" + userDetected, Toast.LENGTH_SHORT).show();
                 // Create notification channel
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     createNotificationChannel();
@@ -159,7 +160,7 @@ public class BeaconForegroundService extends Service {
                 // Getting Post failed, log a message
                 Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
             }
-        });*/
+        });
 
         startInForeground();
         startScanning();
