@@ -164,7 +164,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(monitoring) {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
-                Log.d(TAG,temp);
                 appendToCSV(temp, writerAcc);
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
@@ -187,8 +186,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } else {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 addMapValues(event, 0, 1, 2);
-                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
-                Log.d(TAG,temp);
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
                 addMapValues(event, 3, 4, 5);
             } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
@@ -207,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 addMapValues(event, 15, 16, 17);
             } else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
-                if(event.values[0] == 0.0 ) {
+                if(event.values[0] == 0.0) {
                     already_recognized = false;
                 }
             }
