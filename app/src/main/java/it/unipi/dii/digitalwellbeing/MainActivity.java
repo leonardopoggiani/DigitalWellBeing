@@ -164,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(monitoring) {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                Log.d(TAG,temp);
                 appendToCSV(temp, writerAcc);
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
                 String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
@@ -186,6 +187,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } else {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 addMapValues(event, 0, 1, 2);
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                Log.d(TAG,temp);
             } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
                 addMapValues(event, 3, 4, 5);
             } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
@@ -204,8 +207,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 addMapValues(event, 15, 16, 17);
             } else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
-                Log.d(TAG, "Proximity: " + event.values[0]);
-                if(event.values[0] == 0.0 && checkRangePocket(event)) {
+                if(event.values[0] == 0.0 ) {
                     already_recognized = false;
                 }
             }
@@ -292,13 +294,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    public boolean checkRangePocket(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_POCKET && event.values[0] <= Configuration.X_UPPER_BOUND_POCKET) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_POCKET && event.values[1] <= Configuration.Y_UPPER_BOUND_POCKET) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_POCKET && event.values[2] <= Configuration.Z_UPPER_BOUND_POCKET);
-    }
-
-    public void startMonitoring(View view) throws CsvValidationException, IOException {
+    public void startMonitoring(View v){
 
         RadioButton pickup = (RadioButton) findViewById(R.id.pickup);
         RadioButton other = (RadioButton) findViewById(R.id.other);
