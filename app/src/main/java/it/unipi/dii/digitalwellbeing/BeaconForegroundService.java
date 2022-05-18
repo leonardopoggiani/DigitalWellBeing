@@ -62,6 +62,7 @@ public class BeaconForegroundService extends Service {
     private DatabaseReference db;
     List<Beacon> beacon_list;
     private String device;
+    private boolean notfound;
     Beacon lastbeacon;
 
     public static Intent createIntent(final Context context) {
@@ -78,6 +79,8 @@ public class BeaconForegroundService extends Service {
         isRunning = false;
         device = android.os.Build.MODEL;
         lastbeacon = new Beacon();
+        beacon_list.clear();
+        notfound = true;
         /*if(device.equals("Error")){
             onDestroy();
         }*/
@@ -99,19 +102,23 @@ public class BeaconForegroundService extends Service {
     }
 
     private boolean checkCondition(Beacon b){
+        if(notfound) return false;
+        if (lastbeacon == null) return false;
         if (b.getUserDevice().equals(lastbeacon.getUserDevice())) return false;
         if (b.getTimestamp() < lastbeacon.getTimestamp() - 300000 || b.getTimestamp() > lastbeacon.getTimestamp() + 300000 ) return false;
         if (!b.getProximity().equals(lastbeacon.getProximity())) return false;
         return true;
     }
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        beacon_list.clear();
         if (STOP_SERVICE_ACTION.equals(intent.getAction())) {
             stopSelf();
             return START_NOT_STICKY;
         }
-        beacon_list.clear();
+
         // Check if service is already active
         if (isRunning) {
             Toast.makeText(this, "Service is already running.", Toast.LENGTH_SHORT).show();
@@ -120,7 +127,7 @@ public class BeaconForegroundService extends Service {
 
 
         db.addValueEventListener(new ValueEventListener() {
-
+            @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 //Toast.makeText(getApplicationContext(), "Qualcuno ha scritto nel db", Toast.LENGTH_SHORT).show();
@@ -134,40 +141,35 @@ public class BeaconForegroundService extends Service {
                         beacon.setUserDevice(postSnapshot.child("userDevice").getValue(String.class));
                         beacon.setId(postSnapshot.child("id").getValue(String.class));
                         beacon.setDistance(postSnapshot.child("distance").getValue(Double.class));
-
                         if(checkCondition(beacon)){
                             beacon_list.add(beacon);
                         }
                         //Toast.makeText(getApplicationContext(), "DataChange" + beacon, Toast.LENGTH_SHORT).show();
-                        // if case to check the RSSI (must be implemented!!)
+
 
 
                 }
-                int userDetected = beacon_list.size();
-                Toast.makeText(getApplicationContext(), "User detected:" + userDetected, Toast.LENGTH_SHORT).show();
-                // Create notification channel
-                /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    createNotificationChannel();
+                int userDetected=0;
+                if (beacon_list.isEmpty()){
+                    Toast.makeText(getApplicationContext(), "Empty", Toast.LENGTH_SHORT).show();
+                }else {
+                    userDetected = beacon_list.size();
+                    Toast.makeText(getApplicationContext(), "User detected:" + beacon_list.size(), Toast.LENGTH_SHORT).show();
+                    // Create notification channel
+                    Intent intent=new Intent(getApplicationContext(),MainActivity.class);
+                    String CHANNEL_ID="MYCHANNEL";
+                    NotificationChannel notificationChannel=new NotificationChannel(CHANNEL_ID,"name",NotificationManager.IMPORTANCE_LOW);
+                    Notification notification=new Notification.Builder(getApplicationContext(),CHANNEL_ID)
+                            .setContentText("User detected")
+                            .setContentTitle("Devices detected in your zone")
+                            .setAutoCancel(true)
+                            .setSmallIcon(android.R.drawable.sym_action_chat)
+                            .build();
+
+                    NotificationManager notificationManager=(NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                    notificationManager.createNotificationChannel(notificationChannel);
+                    notificationManager.notify(String.valueOf(userDetected).hashCode(),notification);
                 }
-
-                // Build notification
-                Intent notificationIntent = new Intent(getApplicationContext(), MainActivity.class);
-
-                notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-                PendingIntent intent = PendingIntent.getActivity(getApplicationContext(), 0,
-                        notificationIntent, 0);
-                //final NotificationCompat.Action action = new NotificationCompat.Action(0, "Stop", stopIntent);
-                notificationForeground = new NotificationCompat.Builder(BeaconForegroundService.this, NOTIFICATION_CHANEL_ID)
-                        .setContentTitle("Devices detected")
-                        .setContentText(userDetected+"devices detected in your zone")
-                        .setSmallIcon(android.R.mipmap.sym_def_app_icon)
-                        .setContentIntent(intent)
-                        .setAutoCancel(true)
-                        .build();
-*/
-
             }
 
             @Override
@@ -176,26 +178,6 @@ public class BeaconForegroundService extends Service {
                 Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
             }
         });
-
-        /*db.addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String prevChildKey) {
-                Beacon newBeacon = dataSnapshot.getValue(Beacon.class);
-                Toast.makeText(getApplicationContext(), "ChildAdded" + newBeacon, Toast.LENGTH_SHORT ).show();
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String prevChildKey) {}
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {}
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String prevChildKey) {}
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {}
-        });*/
 
         startInForeground();
         startScanning();
@@ -299,7 +281,7 @@ public class BeaconForegroundService extends Service {
     }
 
     private void onDeviceDiscovered(final RemoteBluetoothDevice device) {
-
+        notfound = false;
         lastbeacon.setAddress(device.getAddress());
         lastbeacon.setDistance(device.getDistance());
         lastbeacon.setId(device.getUniqueId());
