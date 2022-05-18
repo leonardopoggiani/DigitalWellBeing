@@ -4,9 +4,19 @@ import com.kontakt.sdk.android.common.Proximity;
 
 
 public class Beacon {
+    private String key;
     private String address;
     private double distance;
-    private Proximity proximity;
+    private String proximity;
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
     private int rssi;
     private long timestamp;
     private String id;
@@ -28,11 +38,11 @@ public class Beacon {
         this.distance = distance;
     }
 
-    public Proximity getProximity() {
+    public String getProximity() {
         return proximity;
     }
 
-    public void setProximity(Proximity proximity) {
+    public void setProximity(String proximity) {
         this.proximity = proximity;
     }
 

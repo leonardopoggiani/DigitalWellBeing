@@ -19,9 +19,11 @@ public class HandleFirebase {
         //create an unique id
         //String id = db.push().getKey();
         //Saving the beacon object
-        db.push().setValue(beacon);
+        String pushKey = db.push().getKey();
+        //beacon.setKey(pushKey);
+        db.child("Beacon").push().setValue(beacon);
         //displaying a success toast
-        Toast.makeText(context, "Insert firebase", Toast.LENGTH_LONG).show();
+        //Toast.makeText(context, "Insert firebase", Toast.LENGTH_LONG).show();
 
     }
 }

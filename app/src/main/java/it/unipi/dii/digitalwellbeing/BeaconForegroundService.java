@@ -20,6 +20,7 @@ import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -32,6 +33,7 @@ import com.kontakt.sdk.android.ble.manager.ProximityManager;
 import com.kontakt.sdk.android.ble.manager.ProximityManagerFactory;
 import com.kontakt.sdk.android.ble.manager.listeners.IBeaconListener;
 import com.kontakt.sdk.android.ble.manager.listeners.simple.SimpleIBeaconListener;
+import com.kontakt.sdk.android.common.Proximity;
 import com.kontakt.sdk.android.common.profile.IBeaconDevice;
 import com.kontakt.sdk.android.common.profile.IBeaconRegion;
 import com.kontakt.sdk.android.common.profile.RemoteBluetoothDevice;
@@ -44,8 +46,8 @@ public class BeaconForegroundService extends Service {
     public static final String TAG = BeaconForegroundService.class.getSimpleName();
 
     public static final String ACTION_DEVICE_DISCOVERED = "DEVICE_DISCOVERED_ACTION";
-    public static final String EXTRA_DEVICE = "DeviceExtra";
-    public static final String EXTRA_DEVICES_COUNT = "DevicesCountExtra";
+    /*public static final String EXTRA_DEVICE = "DeviceExtra";
+    public static final String EXTRA_DEVICES_COUNT = "DevicesCountExtra";*/
 
     private static final String STOP_SERVICE_ACTION = "STOP_SERVICE_ACTION";
 
@@ -54,22 +56,13 @@ public class BeaconForegroundService extends Service {
 
     private ProximityManager proximityManager;
     private boolean isRunning; // Flag indicating if service is already running.
-    private int devicesCount; // Total discovered devices count
     private NotificationChannel channel;
     private NotificationManager notificationManager;
     private Notification notificationForeground;
     private DatabaseReference db;
     List<Beacon> beacon_list;
     private String device;
-
-    public String getPhoneName() {
-        BluetoothAdapter myDevice = BluetoothAdapter.getDefaultAdapter();
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return "Error";
-        }
-        String deviceName = myDevice.getName();
-        return deviceName;
-    }
+    Beacon lastbeacon;
 
     public static Intent createIntent(final Context context) {
         return new Intent(context, BeaconForegroundService.class);
@@ -84,6 +77,7 @@ public class BeaconForegroundService extends Service {
         setupProximityManager();
         isRunning = false;
         device = android.os.Build.MODEL;
+        lastbeacon = new Beacon();
         /*if(device.equals("Error")){
             onDestroy();
         }*/
@@ -104,13 +98,20 @@ public class BeaconForegroundService extends Service {
         proximityManager.setIBeaconListener(createIBeaconListener());
     }
 
+    private boolean checkCondition(Beacon b){
+        if (b.getUserDevice().equals(lastbeacon.getUserDevice())) return false;
+        if (b.getTimestamp() < lastbeacon.getTimestamp() - 300000 || b.getTimestamp() > lastbeacon.getTimestamp() + 300000 ) return false;
+        if (!b.getProximity().equals(lastbeacon.getProximity())) return false;
+        return true;
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (STOP_SERVICE_ACTION.equals(intent.getAction())) {
             stopSelf();
             return START_NOT_STICKY;
         }
-
+        beacon_list.clear();
         // Check if service is already active
         if (isRunning) {
             Toast.makeText(this, "Service is already running.", Toast.LENGTH_SHORT).show();
@@ -119,19 +120,33 @@ public class BeaconForegroundService extends Service {
 
 
         db.addValueEventListener(new ValueEventListener() {
+
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Toast.makeText(getApplicationContext(), "Qualcuno ha scritto nel db", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), "Qualcuno ha scritto nel db", Toast.LENGTH_SHORT).show();
                 beacon_list.clear();
-                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
-                    Beacon updated = postSnapshot.child("").getValue(Beacon.class);
-                    // if case to check the RSSI (must be implemented!!)
-                    beacon_list.add(updated);
+                Beacon beacon = new Beacon();
+                for (DataSnapshot postSnapshot : dataSnapshot.child("Beacon").getChildren()) {
+
+                        beacon.setProximity(postSnapshot.child("proximity").getValue(String.class));
+                        beacon.setTimestamp(postSnapshot.child("timestamp").getValue(Long.class));
+                        beacon.setRssi(postSnapshot.child("rssi").getValue(Integer.class));
+                        beacon.setUserDevice(postSnapshot.child("userDevice").getValue(String.class));
+                        beacon.setId(postSnapshot.child("id").getValue(String.class));
+                        beacon.setDistance(postSnapshot.child("distance").getValue(Double.class));
+
+                        if(checkCondition(beacon)){
+                            beacon_list.add(beacon);
+                        }
+                        //Toast.makeText(getApplicationContext(), "DataChange" + beacon, Toast.LENGTH_SHORT).show();
+                        // if case to check the RSSI (must be implemented!!)
+
+
                 }
                 int userDetected = beacon_list.size();
                 Toast.makeText(getApplicationContext(), "User detected:" + userDetected, Toast.LENGTH_SHORT).show();
                 // Create notification channel
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     createNotificationChannel();
                 }
 
@@ -151,7 +166,7 @@ public class BeaconForegroundService extends Service {
                         .setContentIntent(intent)
                         .setAutoCancel(true)
                         .build();
-
+*/
 
             }
 
@@ -161,6 +176,26 @@ public class BeaconForegroundService extends Service {
                 Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
             }
         });
+
+        /*db.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String prevChildKey) {
+                Beacon newBeacon = dataSnapshot.getValue(Beacon.class);
+                Toast.makeText(getApplicationContext(), "ChildAdded" + newBeacon, Toast.LENGTH_SHORT ).show();
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String prevChildKey) {}
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {}
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String prevChildKey) {}
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {}
+        });*/
 
         startInForeground();
         startScanning();
@@ -241,7 +276,7 @@ public class BeaconForegroundService extends Service {
             @Override
             public void onServiceReady() {
                 proximityManager.startScanning();
-                devicesCount = 0;
+                //devicesCount = 0;
                 Toast.makeText(BeaconForegroundService.this, "Scanning service started.", Toast.LENGTH_SHORT).show();
             }
         });
@@ -264,15 +299,15 @@ public class BeaconForegroundService extends Service {
     }
 
     private void onDeviceDiscovered(final RemoteBluetoothDevice device) {
-        Beacon beacon = new Beacon();
-        beacon.setAddress(device.getAddress());
-        beacon.setDistance(device.getDistance());
-        beacon.setId(device.getUniqueId());
-        beacon.setProximity(device.getProximity());
-        beacon.setRssi(device.getRssi());
-        beacon.setTimestamp(device.getTimestamp());
-        beacon.setUserDevice(this.device);
-        new HandleFirebase().insert(db, beacon, getApplicationContext());
+
+        lastbeacon.setAddress(device.getAddress());
+        lastbeacon.setDistance(device.getDistance());
+        lastbeacon.setId(device.getUniqueId());
+        lastbeacon.setProximity(device.getProximity().toString());
+        lastbeacon.setRssi(device.getRssi());
+        lastbeacon.setTimestamp(device.getTimestamp());
+        lastbeacon.setUserDevice(this.device);
+        new HandleFirebase().insert(db, lastbeacon, getApplicationContext());
         //Send a broadcast with discovered device
         Intent intent = new Intent();
         intent.setAction(ACTION_DEVICE_DISCOVERED);
