@@ -280,6 +280,14 @@ public class BeaconForegroundService extends Service {
         };
     }
 
+    public void insert (DatabaseReference db, Beacon beacon, Context context){
+        //Saving the beacon object
+        String pushKey = db.push().getKey();
+        db.child("Beacon").push().setValue(beacon);
+        //Toast.makeText(context, "Insert firebase", Toast.LENGTH_LONG).show();
+
+    }
+
     private void onDeviceDiscovered(final RemoteBluetoothDevice device) {
         notfound = false;
         lastbeacon.setAddress(device.getAddress());
@@ -289,7 +297,7 @@ public class BeaconForegroundService extends Service {
         lastbeacon.setRssi(device.getRssi());
         lastbeacon.setTimestamp(device.getTimestamp());
         lastbeacon.setUserDevice(this.device);
-        new HandleFirebase().insert(db, lastbeacon, getApplicationContext());
+        insert(db, lastbeacon, getApplicationContext());
         //Send a broadcast with discovered device
         Intent intent = new Intent();
         intent.setAction(ACTION_DEVICE_DISCOVERED);
