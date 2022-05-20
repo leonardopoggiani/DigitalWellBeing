@@ -73,7 +73,7 @@ public class BeaconForegroundService extends Service {
     public void onCreate() {
         //Toast.makeText(this, "Foreground.", Toast.LENGTH_SHORT).show();
         super.onCreate();
-        db  = FirebaseDatabase.getInstance("https://digitalwellbeing-83177-default-rtdb.europe-west1.firebasedatabase.app/").getReference();;
+        db  = FirebaseDatabase.getInstance("https://digitalwellbeing-83177-default-rtdb.europe-west1.firebasedatabase.app/").getReference();
         beacon_list = new ArrayList<>();
         setupProximityManager();
         isRunning = false;
@@ -103,7 +103,7 @@ public class BeaconForegroundService extends Service {
 
     private boolean checkCondition(Beacon b){
         if(notfound) return false;
-        if (lastbeacon == null) return false;
+        if(!b.getId().equals(lastbeacon.getId())) return false;
         if (b.getUserDevice().equals(lastbeacon.getUserDevice())) return false;
         if (b.getTimestamp() < lastbeacon.getTimestamp() - 300000 || b.getTimestamp() > lastbeacon.getTimestamp() + 300000 ) return false;
         if (!b.getProximity().equals(lastbeacon.getProximity())) return false;
