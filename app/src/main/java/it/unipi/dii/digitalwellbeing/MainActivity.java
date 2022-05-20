@@ -1,15 +1,32 @@
 package it.unipi.dii.digitalwellbeing;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.kontakt.sdk.android.common.profile.RemoteBluetoothDevice;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
@@ -37,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sm;
     private Sensor accelerometer;
     private Sensor proximity;
+    public static final int REQUEST_CODE_PERMISSIONS = 100;
     private Sensor gyroscope;
     private Sensor gravity;
     private Sensor rotation;
@@ -81,6 +99,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(getApplicationContext(), "BLE not supported", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+
+
         storagePath = getApplicationContext().getExternalFilesDir(null);
         Log.d(TAG, "[STORAGE_PATH]: " + storagePath);
 
@@ -109,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // Setup sensors
         sensorSetup();
+
     }
 
     private
@@ -154,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     protected void onPause() {
+        unregisterReceiver(scanningBroadcastReceiver);
         super.onPause();
         sm.unregisterListener(this);
     }
@@ -408,5 +434,48 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         Log.i(TAG, "Accuracy changed");
     }
+
+
+    private void checkPermissions() {
+        String[] requiredPermissions = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+                ? new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}
+                : new String[]{ android.Manifest.permission.BLUETOOTH_SCAN, android.Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.ACCESS_FINE_LOCATION };
+        if(isAnyOfPermissionsNotGranted(requiredPermissions)) {
+            ActivityCompat.requestPermissions(this, requiredPermissions, REQUEST_CODE_PERMISSIONS);
+        }
+    }
+
+    private boolean isAnyOfPermissionsNotGranted(String[] requiredPermissions){
+        for(String permission: requiredPermissions){
+            int checkSelfPermissionResult = ContextCompat.checkSelfPermission(this, permission);
+            if(PackageManager.PERMISSION_GRANTED != checkSelfPermissionResult){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (REQUEST_CODE_PERMISSIONS == requestCode) {
+                Toast.makeText(this, "Permissions granted!", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(this, "Location permissions are mandatory to use BLE features on Android 6.0 or higher", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private final BroadcastReceiver scanningBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Device discovered!
+            //int devicesCount = intent.getIntExtra(BackgroundScanService.EXTRA_DEVICES_COUNT, 0);
+            //RemoteBluetoothDevice device = intent.getParcelableExtra(BackgroundScanService.EXTRA_DEVICE);
+            //statusText.setText(String.format("Total discovered devices: %d\n\nLast scanned device:\n%s", devicesCount, device.toString()));
+            Toast.makeText(context, "Beacon detected", Toast.LENGTH_LONG).show();
+        }
+    };
 
 }
