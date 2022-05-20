@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -26,15 +27,27 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.kontakt.sdk.android.common.profile.RemoteBluetoothDevice;
+import android.widget.RadioButton;
+import android.widget.TextView;
+
+import com.opencsv.exceptions.CsvValidationException;
+
+import org.tensorflow.lite.DataType;
+import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
 
+import it.unipi.dii.digitalwellbeing.ml.PickupClassifier;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -42,17 +55,44 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accelerometer;
     private Sensor proximity;
     public static final int REQUEST_CODE_PERMISSIONS = 100;
+    private Sensor gyroscope;
+    private Sensor gravity;
+    private Sensor rotation;
+    private Sensor linear;
+    private Sensor magnetometer;
+
+    private Context ctx;
 
     private static String TAG = "DigitalWellBeing";
 
     boolean monitoring = false;
     boolean in_pocket = false;
-    double ax,ay,az;   // these are the acceleration in x,y and z axis
-    int already_recognized = 0;
+    private int counter;
     private File storagePath;
-    File dataset;
-    private FileWriter writerDataset;
-    int id = 0;
+    String activity_tag = "";
+
+    private File accel;
+    private File gyr;
+    private File rot;
+    private File grav;
+    private File linearAcc;
+    private File mag;
+
+    private FileWriter writerAcc;
+    private FileWriter writerGyr;
+    private FileWriter writerRot;
+    private FileWriter writerGrav;
+    private FileWriter writerLin;
+    private FileWriter writerMag;
+
+    final float[] rotationMatrix = new float[9];
+    final float[] orientationAngles = new float[3];
+
+    protected Interpreter tflite;
+
+    TreeMap<Long,Float[]> toBeClassified = new TreeMap<>();
+    long timestamp;
+    boolean already_recognized = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +108,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         storagePath = getApplicationContext().getExternalFilesDir(null);
         Log.d(TAG, "[STORAGE_PATH]: " + storagePath);
 
+        counter = 0;
+
+        accel = new File(storagePath, "SensorData_Acc_"+counter+".csv");
+        gyr = new File(storagePath, "SensorData_Gyr_"+counter+".csv");
+        rot = new File(storagePath, "SensorData_Rot_"+counter+".csv");
+        grav = new File(storagePath, "SensorData_Grav_"+counter+".csv");
+        linearAcc = new File(storagePath, "SensorData_LinAcc_"+counter+".csv");
+        mag = new File(storagePath, "SensorData_Mag_"+counter+".csv");
+
+        try {
+            writerAcc = new FileWriter(accel);
+            writerGyr = new FileWriter(gyr);
+            writerRot = new FileWriter(rot);
+            writerGrav = new FileWriter(grav);
+            writerLin = new FileWriter(linearAcc);
+            writerMag = new FileWriter(mag);
+        } catch (IOException e) {
+            e.printStackTrace();
+            //FileWriter creation could be failed so the rate must be reset on low frequency rate
+            Log.d(TAG,"Some writer is failed");
+            stopListener();
+        }
+
         // Setup sensors
         sensorSetup();
 
@@ -75,23 +138,43 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private
     void sensorSetup(){
+
         sm = (SensorManager)getSystemService(SENSOR_SERVICE);
+
         accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         proximity = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        gyroscope = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        rotation = sm.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
+        gravity = sm.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        linear = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        magnetometer = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
-        if(accelerometer == null || proximity == null) {
-            Log.d(TAG, "Sensor(s) unavailable");
-            finish();
+        //if(accelerometer == null || proximity == null || gyroscope == null
+        //        || rotation == null || gravity == null || linear == null) {
+        //    Log.d(TAG, "Sensor(s) unavailable");
+        //    finish();
+        //}
+
+        while(true) {
+            File counter_value = new File(storagePath + "/SensorData_Acc_" + counter + ".csv");
+            if(!counter_value.exists()) {
+                break;
+            } else {
+                counter++;
+            }
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(this, proximity, SensorManager.SENSOR_DELAY_NORMAL);
-        IntentFilter intentFilter = new IntentFilter(BeaconForegroundService.ACTION_DEVICE_DISCOVERED);
-        registerReceiver(scanningBroadcastReceiver, intentFilter);
+        sm.registerListener (this, accelerometer, 33330);
+        sm.registerListener (this, gravity, 33330);
+        sm.registerListener (this, gyroscope, 33330);
+        sm.registerListener (this, rotation, 33330);
+        sm.registerListener (this, linear, 33330);
+        sm.registerListener (this, magnetometer, 33330);
+        sm.registerListener (this, proximity, 33330);
     }
 
     @Override
@@ -101,176 +184,223 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sm.unregisterListener(this);
     }
 
-    @SuppressLint("SetTextI18n")
     @Override
     public void onSensorChanged(SensorEvent event) {
 
         if(monitoring) {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                ax = event.values[0];
-                ay = event.values[1];
-                az = event.values[2];
-                TextView tv = (TextView) findViewById(R.id.provaID);
-                tv.setText(MessageFormat.format("ax: {0}, ay: {1}, az: {2}\n", ax, ay, az));
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerAcc);
+            } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerGyr);
+            } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerLin);
+            } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+                SensorManager.getOrientation(rotationMatrix, orientationAngles);
+                String temp = (Math.toDegrees(orientationAngles[0])) + "," + (Math.toDegrees(orientationAngles[1])) + "," + (Math.toDegrees(orientationAngles[2])) + "," + event.timestamp + ","  + activity_tag + ",\n";
+                appendToCSV(temp, writerRot);
+            } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerGrav);
+            } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+                String temp = event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + event.timestamp + "," + activity_tag + ",\n";
+                appendToCSV(temp, writerMag);
+            }
+        } else {
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                addMapValues(event, 0, 1, 2);
+            } else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                addMapValues(event, 3, 4, 5);
+            } else if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+                addMapValues(event, 6, 7, 8);
+            } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
+                addMapValues(event, 9, 10, 11);
+            } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+                addMapValues(event, 12, 13, 14);
+            } else if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+                SensorManager.getOrientation(rotationMatrix, orientationAngles);
 
-                if ( checkRangeDownwardsPocket(event) && in_pocket ) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Downwards Trouser pocket");
-                    Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET_DOWNWARDS");
+                event.values[0] = (float) Math.toDegrees(orientationAngles[0]);
+                event.values[1] = (float) Math.toDegrees(orientationAngles[1]);
+                event.values[2] = (float) Math.toDegrees(orientationAngles[2]);
 
-                    if (already_recognized == 0) {
-                        already_recognized = 1;
-                        Log.i(TAG, "Trouser pocket \n");
-                    }
-                } else if ( checkRangeUpwardsPocket(event) && in_pocket) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Upwards Trouser pocket");
-                    Log.i(TAG, " Trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "POCKET_UPWARDS");
-
-                    if (already_recognized == 0) {
-                        already_recognized = 1;
-                        Log.i(TAG, "Trouser pocket \n");
-                    }
-                } else if ( checkRangeHandheld(event) && !in_pocket) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Handheld");
-                    Log.i(TAG, " Handheld ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "HANDHELD");
-
-                } else if ( checkRangeTable(event) && !in_pocket) {
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Table");
-                    Log.i(TAG, " On the table ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "TABLE");
-
-                } else {
-                    appendToCSV(id, ax, ay, az, event.timestamp, writerDataset, "OTHER");
-
-                    TextView tvLabel = (TextView) findViewById(R.id.Label);
-                    tvLabel.setText("Other");
-                    Log.i(TAG, " Not in trouser pocket ax: " + ax + ", ay: " + ay + ", az: " + az + "\n");
-                    already_recognized = 0;
+                addMapValues(event, 15, 16, 17);
+            } else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
+                if(event.values[0] == 0.0) {
+                    already_recognized = false;
                 }
-            } else if(event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
-                in_pocket = event.values[0] == 0;
             }
         }
     }
 
-    private void appendToCSV(int id, double x, double y, double z, long timestamp, FileWriter writer, String tag) {
-        StringBuilder sb = new StringBuilder();
+    private void addMapValues(SensorEvent event, int i1, int i2, int i3) {
+        boolean ret = false;
 
-        sb.append(id);
-        sb.append(',');
-        sb.append(x);
-        sb.append(',');
-        sb.append(y);
-        sb.append(',');
-        sb.append(z);
-        sb.append(',');
-        sb.append(timestamp);
-        sb.append(',');
-        sb.append(tag);
-        sb.append('\n');
+        // puó succedere che arrivino due valori di accelerometro consecutivi, si potrebbe fare quindi la media anziché scartare il valore
+        // la media sarebbe sempre tra due campioni non molto distanti tra loro, accettabile come approssimazione?
 
-        this.id++;
+        for(int i = i1; i <= i3 ; i++){
+            if(toBeClassified.size() != 0 && !isFull()) {
 
+                if(Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] != null) {
+                    Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] =
+                            (Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] + event.values[i % 3]) / 2;
+                } else {
+                    Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] = event.values[i % 3];
+                }
+
+                ret = true;
+            }
+        }
+
+        if(!ret) {
+            toBeClassified.put(event.timestamp, new Float[18]);
+
+            Objects.requireNonNull(toBeClassified.get(event.timestamp))[i1] = event.values[0];
+            Objects.requireNonNull(toBeClassified.get(event.timestamp))[i2] = event.values[1];
+            Objects.requireNonNull(toBeClassified.get(event.timestamp))[i3] = event.values[2];
+        }
+
+        // si puó prendere un campione ogni 10 (non abbiamo bisogno di tanti campioni per classificare)
+        // oppure si puó pensare di aggregare questi campioni in qualche modo (media?)
+        if(toBeClassified.size() >= 150) {
+            long last_timestamp = toBeClassified.lastKey();
+            Collection<Float[]> values = toBeClassified.values();
+            Float[] toClassify = new Float[18];
+            int[] count = new int[18];
+
+            for(int i = 0; i < 18; i++) {
+                for (Iterator<Float[]> it = values.iterator(); it.hasNext(); ) {
+                    Float[] value = it.next();
+                    if(value[i] == null) {
+                        continue;
+                    } else {
+                        count[i]++;
+                    }
+
+                    if(toClassify[i] == null) {
+                        toClassify[i] = value[i];
+                    } else {
+                        toClassify[i] = (toClassify[i] + value[i]);
+                    }
+                }
+            }
+
+            for(int i = 0; i < 18; i++) {
+                toClassify[i] = toClassify[i] / count[i];
+            }
+
+            classifySamples(toClassify);
+
+        }
+    }
+
+    private boolean isFull() {
+        for(int i = 0; i < Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey())).length; i++) {
+            if(Objects.requireNonNull(toBeClassified.get(toBeClassified.lastKey()))[i] == null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void appendToCSV(String temp, FileWriter writer) {
         try {
-            writer.append(sb.toString());
+            writer.append(temp);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public boolean checkRangeUpwardsPocket(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_UPWARDS && event.values[0] <= Configuration.X_UPPER_BOUND_UPWARDS) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_UPWARDS && event.values[1] <= Configuration.Y_UPPER_BOUND_UPWARDS) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_UPWARDS && event.values[2] <= Configuration.Z_UPPER_BOUND_UPWARDS);
-    }
+    public void startMonitoring(View v){
 
-    public boolean checkRangeDownwardsPocket(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_DOWNWARDS && event.values[0] <= Configuration.X_UPPER_BOUND_DOWNWARDS) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_DOWNWARDS && event.values[1] <= Configuration.Y_UPPER_BOUND_DOWNWARDS) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_DOWNWARDS && event.values[2] <= Configuration.Z_UPPER_BOUND_DOWNWARDS);
-    }
-
-    public boolean checkRangeHandheld(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_HANDHELD && event.values[0] <= Configuration.X_UPPER_BOUND_HANDHELD) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_HANDHELD && event.values[1] <= Configuration.Y_UPPER_BOUND_HANDHELD) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_HANDHELD && event.values[2] <= Configuration.Z_UPPER_BOUND_HANDHELD);
-    }
-
-    public boolean checkRangeTable(SensorEvent event) {
-        return (event.values[0] >= Configuration.X_LOWER_BOUND_TABLE && event.values[0] <= Configuration.X_UPPER_BOUND_TABLE) &&
-                (event.values[1] >= Configuration.Y_LOWER_BOUND_TABLE && event.values[1] <= Configuration.Y_UPPER_BOUND_TABLE) &&
-                (event.values[2] >= Configuration.Z_LOWER_BOUND_TABLE && event.values[2] <= Configuration.Z_UPPER_BOUND_TABLE);
-    }
-
-    public void startBeacon(View view){
-        checkPermissions();
-        Toast.makeText(this, "Service is starting.", Toast.LENGTH_SHORT).show();
-        //Intent intent = new Intent(getApplicationContext(), BeaconService.class);
-        Intent intent = new Intent(getApplicationContext(), BeaconForegroundService.class);
-        startService(intent);
-    }
-
-
-    public void startMonitoring(View view) {
+        RadioButton pickup = (RadioButton) findViewById(R.id.pickup);
+        RadioButton other = (RadioButton) findViewById(R.id.other);
 
         if(!monitoring) {
-            dataset = new File(storagePath, "dataset.csv");
-
-            try {
-                writerDataset = new FileWriter(dataset);
-
-                StringBuilder sb = new StringBuilder();
-                sb.append("id");
-                sb.append(',');
-                sb.append("ax");
-                sb.append(',');
-                sb.append("ay");
-                sb.append(',');
-                sb.append("az");
-                sb.append(',');
-                sb.append("timestamp");
-                sb.append(',');
-                sb.append("tag");
-                sb.append('\n');
-
-                writerDataset.append(sb);
-
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (pickup.isChecked()) {
+                activity_tag = "PICKUP";
+            } else if (other.isChecked()) {
+                activity_tag = "OTHER";
             }
 
-            Button start_button = (Button)findViewById(R.id.start);
+            // monitoring = true;
+            Button start_button = (Button) findViewById(R.id.start);
             start_button.setText("STOP");
-            monitoring = true;
-
         } else {
-            stopListener();
             Button stop_button = (Button)findViewById(R.id.start);
             stop_button.setText("START");
 
-            FeatureExtraction fe = new FeatureExtraction(this);
-            RandomForestClassifier rfc = new RandomForestClassifier(this);
-            fe.calculateFeatures();
-            double activity = rfc.classify();
-            //The classifier can return 0.0 for "Others" activity, 1.0 for "Washing_Hands"
-            // activity or -1.0 in case of errors.
-            if (activity == 1.0) {
-                Log.d(TAG, "WASHING_HANDS");
-                //if (serviceCallbacks != null) {
-                //    serviceCallbacks.setBackground("GREEN");
-                //}
-            } else if (activity == 0.0) {
-                Log.d(TAG, "OTHERS");
-                //if (serviceCallbacks != null) {
-                //    serviceCallbacks.setBackground("RED");
-                //}
+            pickup.setChecked(false);
+            other.setChecked(false);
+
+            monitoring = false;
+        }
+
+    }
+
+    private void classifySamples(Float[] toClassify) {
+        // classify the samples
+        TensorBuffer inputFeature0 = null;
+        float[] data = new float[18];
+
+        try {
+            PickupClassifier model = PickupClassifier.newInstance(this);
+            for (Map.Entry<Long, Float[]> entry : toBeClassified.entrySet()) {
+                Log.d(TAG, "rowString length: " + (entry.getValue() != null ? entry.getValue().length : 0));
+
+                int[] shape = new int[]{1, 18};
+                TensorBuffer tensorBuffer = TensorBuffer.createFixedSize(shape, DataType.FLOAT32);
+
+                for (int i = 0; i < toClassify.length; i++) {
+                    data[i] = toClassify[i];
+                }
+
+                tensorBuffer.loadArray(data);
+
+                inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 18, 1}, DataType.FLOAT32);
+                ByteBuffer byteBuffer = tensorBuffer.getBuffer();
+                inputFeature0.loadBuffer(byteBuffer);
+
+                // Runs model inference and gets result.
+                PickupClassifier.Outputs outputs = model.process(inputFeature0);
+                TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
+                data = outputFeature0.getFloatArray();
+
+                // Releases model resources if no longer used.
+                TextView tv = findViewById(R.id.activity);
+                TextView tv2 = findViewById(R.id.counter);
+
+                tv.setText(outputFeature0.getDataType().toString());
+                if (data[0] > 0.5) {
+
+                    tv.setText("Picking up phone!");
+                    CharSequence counter = tv2.getText();
+                    int count = Integer.parseInt(counter.toString());
+
+                    if(!already_recognized)
+                        count += 1;
+
+                    tv2.setText(String.valueOf(count));
+                    already_recognized = true;
+                } else {
+                    tv.setText("Other activities");
+                }
+
+                Log.d(TAG, "predictActivities: output array: " + Arrays.toString(outputFeature0.getFloatArray()));
+                break;
             }
+            toBeClassified.clear();
+            // Releases model resources if no longer used.
+            model.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
@@ -280,8 +410,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             sm.unregisterListener(this);
 
         try {
-            writerDataset.flush();
-            writerDataset.close();
+            writerAcc.flush();
+            writerAcc.close();
+            writerGyr.flush();
+            writerGyr.close();
+            writerRot.flush();
+            writerRot.close();
+            writerGrav.flush();
+            writerGrav.close();
+            writerLin.flush();
+            writerLin.close();
+            writerMag.flush();
+            writerMag.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

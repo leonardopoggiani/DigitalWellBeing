@@ -2,48 +2,141 @@ package it.unipi.dii.digitalwellbeing;
 
 public class Configuration {
 
-    protected enum axis {X,Y,Z,PITCH,ROLL};
+    // IN PIEDI TASCA DESTRA E SINISTRA {
+        // valori accelerometro telefono in tasca all'insú verso la tasca {
 
-    static final int SIGNAL_LENGTH = 8; //seconds
-    static final int SAMPLING_RATE = 50; //seconds
-    static final Double DELTA = 0.03; //seconds
-    static final int FRAGMENT_LENGTH = 8; //seconds
-    static final int WINDOW_SIZE = 4; //seconds
-    static final long DETECTION_DELAY = 300000;     //Timer delay for whole detection period, of 5 minutes
-    static final long FAST_SAMPLING_DELAY = 10000;  //Timer delay for fast sampling period, of 10 seconds
+        static final double X_LOWER_BOUND_UPWARDS_POCKET = -5.0;
+        static final double X_UPPER_BOUND_UPWARDS_POCKET = 3.0;
+        static final double Y_LOWER_BOUND_UPWARDS_POCKET = 8.0;
+        static final double Y_UPPER_BOUND_UPWARDS_POCKET = 12.0;
+        static final double Z_LOWER_BOUND_UPWARDS_POCKET = -3.0;
+        static final double Z_UPPER_BOUND_UPWARDS_POCKET = 3.0;
 
-    // Range values for accelerometer {
+        // }
 
-    // smartphone leaning on the table
-    static final double X_LOWER_BOUND_TABLE = -1.0;
-    static final double X_UPPER_BOUND_TABLE = 1.0;
-    static final double Y_LOWER_BOUND_TABLE = -1.0;
-    static final double Y_UPPER_BOUND_TABLE = 1.0;
-    static final double Z_LOWER_BOUND_TABLE = 9.0;
-    static final double Z_UPPER_BOUND_TABLE = 11.0;
+        // valori accelerometro telefono in tasca all'insú verso la gamba {
 
-    // smartphone hand held by the user
-    static final double X_LOWER_BOUND_HANDHELD = -1.0;
-    static final double X_UPPER_BOUND_HANDHELD = 2.0;
-    static final double Y_LOWER_BOUND_HANDHELD = 3.0;
-    static final double Y_UPPER_BOUND_HANDHELD = 10.0;
-    static final double Z_LOWER_BOUND_HANDHELD = 2.0;
-    static final double Z_UPPER_BOUND_HANDHELD = 10.0;
+        static final double X_LOWER_BOUND_UPWARDS_LEG = -3.0;
+        static final double X_UPPER_BOUND_UPWARDS_LEG = 4.0;
+        static final double Y_LOWER_BOUND_UPWARDS_LEG = 8.0;
+        static final double Y_UPPER_BOUND_UPWARDS_LEG = 12.0;
+        static final double Z_LOWER_BOUND_UPWARDS_LEG = -1.0;
+        static final double Z_UPPER_BOUND_UPWARDS_LEG = 4.0;
 
-    // smartphone up in the user's pocket
-    static final double X_LOWER_BOUND_UPWARDS = 0.0;
-    static final double X_UPPER_BOUND_UPWARDS = 3.0;
-    static final double Y_LOWER_BOUND_UPWARDS = 9.0;
-    static final double Y_UPPER_BOUND_UPWARDS = 10.5;
-    static final double Z_LOWER_BOUND_UPWARDS = -2.0;
-    static final double Z_UPPER_BOUND_UPWARDS = 1.0;
+        // }
 
-    // smartphone down in the user's pocket
-    static final double X_LOWER_BOUND_DOWNWARDS = -1.0;
-    static final double X_UPPER_BOUND_DOWNWARDS = 5.0;
-    static final double Y_LOWER_BOUND_DOWNWARDS = -11.0;
-    static final double Y_UPPER_BOUND_DOWNWARDS = -8.0;
-    static final double Z_LOWER_BOUND_DOWNWARDS = -0.5;
-    static final double Z_UPPER_BOUND_DOWNWARDS = 4.0;
+        // valori accelerometro telefono in tasca all'ingiú verso la tasca {
 
+        static final double X_LOWER_BOUND_DOWNWARDS_POCKET = -6.0;
+        static final double X_UPPER_BOUND_DOWNWARDS_POCKET = 5.0;
+        static final double Y_LOWER_BOUND_DOWNWARDS_POCKET = -11.0;
+        static final double Y_UPPER_BOUND_DOWNWARDS_POCKET = -7.0;
+        static final double Z_LOWER_BOUND_DOWNWARDS_POCKET = -4.0;
+        static final double Z_UPPER_BOUND_DOWNWARDS_POCKET = 1.0;
+
+        // }
+
+        // valori accelerometro telefono in tasca all'ingiú verso la gamba {
+
+        static final double X_LOWER_BOUND_DOWNWARDS_LEG = -3.0;
+        static final double X_UPPER_BOUND_DOWNWARDS_LEG = 4.0;
+        static final double Y_LOWER_BOUND_DOWNWARDS_LEG = -10.0;
+        static final double Y_UPPER_BOUND_DOWNWARDS_LEG = -7.0;
+        static final double Z_LOWER_BOUND_DOWNWARDS_LEG = 0.0;
+        static final double Z_UPPER_BOUND_DOWNWARDS_LEG = 5.0;
+
+        // }
+    // }
+
+    // SEDUTO TASCA DESTRA {
+        // valori accelerometro telefono in tasca all'insú verso la tasca {
+
+        static final double X_LOWER_BOUND_UPWARDS_RIGHT_POCKET_SIT = 6.0;
+        static final double X_UPPER_BOUND_UPWARDS_RIGHT_POCKET_SIT = 11.0;
+        static final double Y_LOWER_BOUND_UPWARDS_RIGHT_POCKET_SIT = 0.0;
+        static final double Y_UPPER_BOUND_UPWARDS_RIGHT_POCKET_SIT = 8.0;
+        static final double Z_LOWER_BOUND_UPWARDS_RIGHT_POCKET_SIT = 0.0;
+        static final double Z_UPPER_BOUND_UPWARDS_RIGHT_POCKET_SIT = 3.0;
+
+        // }
+
+        // valori accelerometro telefono in tasca all'insú verso la gamba {
+
+        static final double X_LOWER_BOUND_UPWARDS_RIGHT_LEG_SIT = -10.0;
+        static final double X_UPPER_BOUND_UPWARDS_RIGHT_LEG_SIT = -6.0;
+        static final double Y_LOWER_BOUND_UPWARDS_RIGHT_LEG_SIT = 0.0;
+        static final double Y_UPPER_BOUND_UPWARDS_RIGHT_LEG_SIT = 8.0;
+        static final double Z_LOWER_BOUND_UPWARDS_RIGHT_LEG_SIT = -2.0;
+        static final double Z_UPPER_BOUND_UPWARDS_RIGHT_LEG_SIT = 2.0;
+
+        // }
+
+        // valori accelerometro telefono in tasca all'ingiú verso la tasca {
+
+        static final double X_LOWER_BOUND_DOWNWARDS_RIGHT_POCKET_SIT = -10.0;
+        static final double X_UPPER_BOUND_DOWNWARDS_RIGHT_POCKET_SIT = -7.0;
+        static final double Y_LOWER_BOUND_DOWNWARDS_RIGHT_POCKET_SIT = -8.0;
+        static final double Y_UPPER_BOUND_DOWNWARDS_RIGHT_POCKET_SIT = -2.0;
+        static final double Z_LOWER_BOUND_DOWNWARDS_RIGHT_POCKET_SIT = 0.0;
+        static final double Z_UPPER_BOUND_DOWNWARDS_RIGHT_POCKET_SIT = 5.0;
+
+        // }
+
+        // valori accelerometro telefono in tasca all'ingiú verso la gamba {
+
+        static final double X_LOWER_BOUND_DOWNWARDS_RIGHT_LEG_SIT = 8.0;
+        static final double X_UPPER_BOUND_DOWNWARDS_RIGHT_LEG_SIT = 11.0;
+        static final double Y_LOWER_BOUND_DOWNWARDS_RIGHT_LEG_SIT = -6.0;
+        static final double Y_UPPER_BOUND_DOWNWARDS_RIGHT_LEG_SIT = 3.0;
+        static final double Z_LOWER_BOUND_DOWNWARDS_RIGHT_LEG_SIT = -4.0;
+        static final double Z_UPPER_BOUND_DOWNWARDS_RIGHT_LEG_SIT = 1.0;
+
+        // }
+    // }
+
+    // SEDUTO TASCA SINISTRA {
+        // valori accelerometro telefono in tasca all'insú verso la tasca {
+
+        static final double X_LOWER_BOUND_UPWARDS_LEFT_POCKET_SIT = -10.0;
+        static final double X_UPPER_BOUND_UPWARDS_LEFT_POCKET_SIT = -6.0;
+        static final double Y_LOWER_BOUND_UPWARDS_LEFT_POCKET_SIT = 2.0;
+        static final double Y_UPPER_BOUND_UPWARDS_LEFT_POCKET_SIT = 7.0;
+        static final double Z_LOWER_BOUND_UPWARDS_LEFT_POCKET_SIT = -2.0;
+        static final double Z_UPPER_BOUND_UPWARDS_LEFT_POCKET_SIT = 1.0;
+
+        // }
+
+        // valori accelerometro telefono in tasca all'insú verso la gamba {
+
+        static final double X_LOWER_BOUND_UPWARDS_LEFT_LEG_SIT = 7.0;
+        static final double X_UPPER_BOUND_UPWARDS_LEFT_LEG_SIT = 10.0;
+        static final double Y_LOWER_BOUND_UPWARDS_LEFT_LEG_SIT = 2.0;
+        static final double Y_UPPER_BOUND_UPWARDS_LEFT_LEG_SIT = 7.0;
+        static final double Z_LOWER_BOUND_UPWARDS_LEFT_LEG_SIT = -1.0;
+        static final double Z_UPPER_BOUND_UPWARDS_LEFT_LEG_SIT = 1.0;
+
+        // }
+
+        // valori accelerometro telefono in tasca all'ingiú verso la tasca {
+
+        static final double X_LOWER_BOUND_DOWNWARDS_LEFT_POCKET_SIT = 6.0;
+        static final double X_UPPER_BOUND_DOWNWARDS_LEFT_POCKET_SIT = 10.0;
+        static final double Y_LOWER_BOUND_DOWNWARDS_LEFT_POCKET_SIT = -7.0;
+        static final double Y_UPPER_BOUND_DOWNWARDS_LEFT_POCKET_SIT = -1.0;
+        static final double Z_LOWER_BOUND_DOWNWARDS_LEFT_POCKET_SIT = -1.0;
+        static final double Z_UPPER_BOUND_DOWNWARDS_LEFT_POCKET_SIT = 2.0;
+
+        // }
+
+        // valori accelerometro telefono in tasca all'ingiú verso la gamba {
+
+        static final double X_LOWER_BOUND_DOWNWARDS_LEFT_LEG_SIT = -6.0;
+        static final double X_UPPER_BOUND_DOWNWARDS_LEFT_LEG_SIT = -10.0;
+        static final double Y_LOWER_BOUND_DOWNWARDS_LEFT_LEG_SIT = -7.0;
+        static final double Y_UPPER_BOUND_DOWNWARDS_LEFT_LEG_SIT = -1.0;
+        static final double Z_LOWER_BOUND_DOWNWARDS_LEFT_LEG_SIT = -1.0;
+        static final double Z_UPPER_BOUND_DOWNWARDS_LEFT_LEG_SIT = 1.0;
+
+        // }
+    // }
 }
