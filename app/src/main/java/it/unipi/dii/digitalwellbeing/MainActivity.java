@@ -265,8 +265,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Objects.requireNonNull(toBeClassified.get(event.timestamp))[i3] = event.values[2];
         }
 
-        // si puó prendere un campione ogni 10 (non abbiamo bisogno di tanti campioni per classificare)
-        // oppure si puó pensare di aggregare questi campioni in qualche modo (media?)
         if(toBeClassified.size() >= 150) {
             long last_timestamp = toBeClassified.lastKey();
             Collection<Float[]> values = toBeClassified.values();
